@@ -16,3 +16,8 @@
 #docker
 docker-compose.override.yml
 /docker/mysql/
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
