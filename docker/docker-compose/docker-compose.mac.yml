@@ -1,0 +1,12 @@
+services:
+  trailcast_app:
+    platform: linux/arm64
+    build:
+      args:
+        ARCH_VERSION: arm64
+
+  trailcast_valkey:
+    platform: linux/arm64
+
+  trailcast_db:
+    platform: linux/arm64

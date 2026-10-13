@@ -1,0 +1,54 @@
+services:
+    trailcast_app:
+        build:
+            args:
+                PHP_VERSION: ${PHP_VERSION}
+                COMPOSER_VERSION: ${COMPOSER_VERSION}
+            context: ./
+            dockerfile: docker/Dockerfile-app
+        container_name: trailcast_app_ctr
+        working_dir: /app
+        volumes:
+            - ./:/src
+            - ./docker/conf/php.ini:/usr/local/etc/php/php.ini
+        user: "1000:0"
+        depends_on:
+            trailcast_db:
+                condition: service_healthy
+            trailcast_valkey:
+                condition: service_started
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        ports:
+            - 5173:5173
+
+    trailcast_db:
+        image: mysql:8.4
+        container_name: trailcast_db_ctr
+        environment:
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+        volumes:
+            - ./docker/mysql:/var/lib/mysql
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        ports:
+            - "${DOCKER_DB_PORT:-3311}:3306"
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+            interval: 5s
+            timeout: 3s
+            retries: 10
+
+    trailcast_valkey:
+        image: valkey/valkey:8.1
+        container_name: trailcast_valkey_ctr
+        volumes:
+            - ./docker/conf/valkey.conf:/etc/valkey/valkey.conf
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        ports:
+            - "${DOCKER_VALKEY_PORT:-6379}:6379"
+
