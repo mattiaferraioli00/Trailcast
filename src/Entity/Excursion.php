@@ -46,6 +46,9 @@ class Excursion
     #[ORM\Column]
     private ?float $longitude = null;
 
+    #[ORM\Column]
+    private ?int $seats_available = null;
+
     public function __construct(
         string $title,
         string $description,
@@ -64,6 +67,7 @@ class Excursion
         $this->country = $country;
         $this->date = $date;
         $this->capacity = $capacity;
+        $this->seats_available = $capacity;
         $this->latitude = $latitude;
         $this->longitude = $longitude;
     }
@@ -195,6 +199,18 @@ class Excursion
     public function setLongitude(float $longitude): static
     {
         $this->longitude = $longitude;
+
+        return $this;
+    }
+
+    public function getSeatsAvailable(): ?int
+    {
+        return $this->seats_available;
+    }
+
+    public function setSeatsAvailable(int $seats_available): static
+    {
+        $this->seats_available = $seats_available;
 
         return $this;
     }

@@ -3,7 +3,13 @@
 namespace App\Repository;
 
 use App\Entity\Excursion;
+use App\Http\Requests\SearchExcursionRequest;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Tools\Pagination\OffsetPaginator;
+use Doctrine\ORM\Tools\Pagination\Paginator;
+use Doctrine\ORM\Tools\Pagination\Window;
+use Doctrine\ORM\Tools\Pagination\WindowPage;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -14,6 +20,46 @@ class ExcursionRepository extends ServiceEntityRepository
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Excursion::class);
+    }
+
+    public function findBookable(SearchExcursionRequest $request, \DateTimeImmutable $today): WindowPage
+    {
+        $query = $this->createQueryBuilder('e')
+            ->where('e.capacity > 0');
+//            ->andWhere('e.date >= :today')
+//            ->setParameter('today', $today, Types::DATE_IMMUTABLE);
+
+        // TODO: Se c'è tempo implementare ricerca per zona
+        if (!is_null($request->getCity())) {
+            $query->andWhere('e.city = :city')
+                ->setParameter('city', $request->getCity());
+        }
+
+        if (!is_null($request->getCountry())) {
+            $query->andWhere('e.country = :country')
+                ->setParameter('country', $request->getCountry());
+        }
+
+        if (!is_null($request->getDateFrom())) {
+            $query->andWhere('e.date >= :from')
+                ->setParameter('from', $request->getDateFrom());
+        }
+
+        if (!is_null($request->getDateTo())) {
+            $query->andWhere('e.date <= :to')
+                ->setParameter('to', $request->getDateTo());
+        }
+
+        if (!is_null($request->getSeats())) {
+            $query->andWhere('e.capacity >= :seats')
+                ->setParameter('seats', $request->getSeats());
+        }
+
+        $query->orderBy('e.date', 'ASC')
+            ->addOrderBy('e.id', 'ASC');
+
+        return (new OffsetPaginator(fetchJoinCollection: false))
+            ->paginate($query, Window::fromPageNumberAndSize($request->getPage(), $request->getPerPage()));
     }
 
 //    /**

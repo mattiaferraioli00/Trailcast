@@ -3,8 +3,8 @@
 namespace App\Tests\Integration\Services\OpenMeteoGeocodingService;
 
 use App\Contracts\Services\OpenMeteoServiceInterface;
-use App\Exceptions\GeocodingUnavailableException;
 use App\Exceptions\LocationNotFoundException;
+use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use App\Services\OpenMeteoGeocodingService;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;

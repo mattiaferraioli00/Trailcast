@@ -14,8 +14,8 @@ class ExcursionView
     public string $date;
     public int $capacity;
 
-    public int $latitude;
-    public int $longitude;
+    public float $latitude;
+    public float $longitude;
 
     public function __construct(Excursion $excursion)
     {

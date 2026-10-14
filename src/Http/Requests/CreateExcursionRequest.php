@@ -6,6 +6,7 @@ use DateTime;
 use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Validator\Constraints as Assert;
+
 class CreateExcursionRequest
 {
     #[Assert\NotBlank]
@@ -50,11 +51,6 @@ class CreateExcursionRequest
     public function getTitle(): string
     {
         return $this->title;
-    }
-
-    public function setTitle(string $title): void
-    {
-        $this->title = $title;
     }
 
     public function getDescription(): string

@@ -2,10 +2,12 @@
 
 namespace App\Contracts\Services;
 
+use App\Dto\PaginatedResult;
 use App\Entity\Excursion;
-use App\Exceptions\GeocodingUnavailableException;
 use App\Exceptions\LocationNotFoundException;
+use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use App\Http\Requests\CreateExcursionRequest;
+use App\Http\Requests\SearchExcursionRequest;
 
 interface ExcursionServiceInterface
 {
@@ -19,4 +21,6 @@ interface ExcursionServiceInterface
      * @throws GeocodingUnavailableException If the geocoding provider is unavailable.
      */
     public function createExcursion(CreateExcursionRequest $request): Excursion;
+
+    public function searchExcursions(SearchExcursionRequest $request): PaginatedResult;
 }

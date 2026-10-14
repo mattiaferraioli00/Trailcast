@@ -1,0 +1,12 @@
+<?php
+
+namespace App\Exceptions\OpenMeteo;
+
+use Exception;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
+
+#[WithHttpStatus(422)]
+class OpenMeteoUnprocessableException extends Exception
+{
+
+}
