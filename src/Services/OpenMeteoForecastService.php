@@ -26,7 +26,12 @@ class OpenMeteoForecastService
     {
     }
 
-    /** @return array<string, Forecast> indicizzato per data Y-m-d; vuoto se il meteo non è disponibile
+    /**
+     * Returns the daily forecast of a location, cached for one hour per day and rounded coordinates.
+     * When the provider is unavailable a warning is logged and an empty forecast is returned.
+     *
+     * @param Coordinates $coordinates Location to get the forecast for.
+     * @return array<string, Forecast> Forecasts indexed by date (Y-m-d); empty if the weather is unavailable.
      * @throws InvalidArgumentException
      */
     public function getWeatherData(Coordinates $coordinates): array
@@ -52,12 +57,20 @@ class OpenMeteoForecastService
     }
 
     /**
-     * @return array<string, Forecast>
+     * Requests the daily forecast from Open-Meteo (cache miss).
+     *
+     * @param Coordinates $coordinates Location to get the forecast for.
+     * @return array<string, Forecast> Forecasts indexed by date (Y-m-d).
      * @throws OpenMeteoUnavailableException
      * @throws OpenMeteoUnprocessableException
      */
     private function fetch(Coordinates $coordinates): array
     {
+        $this->logger->debug('Forecast cache miss, requesting Open-Meteo.', [
+            'latitude' => $coordinates->getLatitude(),
+            'longitude' => $coordinates->getLongitude(),
+        ]);
+
         try {
             $data = $this->openMeteoForecastClient->request('GET', 'forecast', [
                 'query' => [

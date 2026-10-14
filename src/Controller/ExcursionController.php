@@ -14,6 +14,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -65,12 +66,45 @@ class ExcursionController extends AbstractController
         return $this->json(new ExcursionView($excursion), Response::HTTP_CREATED);
     }
 
+    /**
+     * Searches the bookable excursions (future date, available capacity) and attaches the weather forecast of
+     * the excursion day, when available.
+     *
+     * @param SearchExcursionRequest $request Optional filters (city, country, date range, seats) and pagination,
+     *                                        mapped from the query string and validated by {@see MapQueryString}.
+     * @return JsonResponse A page of excursions with their forecast, with HTTP status 200.
+     */
     #[Route('', name: 'get-excursions', methods: ['GET'])]
+    #[OA\Response(
+        response: 200,
+        description: 'Page of bookable excursions with the forecast of the excursion day, when available.',
+        content: new Model(type: ExcursionListView::class)
+    )]
+    #[OA\Response(
+        response: 422,
+        description: 'Unprocessable content.',
+    )]
     public function search(
-        #[MapRequestPayload] SearchExcursionRequest $request = new SearchExcursionRequest()
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
+        SearchExcursionRequest $request = new SearchExcursionRequest()
     ): JsonResponse
     {
+        $this->logger->debug('Searching excursions.', [
+            'city' => $request->getCity(),
+            'country' => $request->getCountry(),
+            'date_from' => $request->getDateFrom()?->format('Y-m-d'),
+            'date_to' => $request->getDateTo()?->format('Y-m-d'),
+            'seats' => $request->getSeats(),
+            'page' => $request->getPage(),
+            'per_page' => $request->getPerPage(),
+        ]);
+
         $excursions = $this->excursionService->searchExcursions($request);
+
+        $this->logger->debug('Excursions found.', [
+            'returned' => count($excursions->getItems()),
+            'total' => $excursions->getTotal(),
+        ]);
 
         return $this->json(new ExcursionListView($excursions), Response::HTTP_OK);
     }

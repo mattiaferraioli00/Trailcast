@@ -22,12 +22,20 @@ class ExcursionRepository extends ServiceEntityRepository
         parent::__construct($registry, Excursion::class);
     }
 
+    /**
+     * Finds the excursions that can still be booked (capacity left and date from today on), applying the optional
+     * filters of the request, ordered by date and id.
+     *
+     * @param SearchExcursionRequest $request Optional filters (city, country, date range, seats) and pagination.
+     * @param \DateTimeImmutable $today Lower bound of the excursion date (start of the current day).
+     * @return WindowPage The requested page of excursions, with the total number of matches.
+     */
     public function findBookable(SearchExcursionRequest $request, \DateTimeImmutable $today): WindowPage
     {
         $query = $this->createQueryBuilder('e')
-            ->where('e.capacity > 0');
-//            ->andWhere('e.date >= :today')
-//            ->setParameter('today', $today, Types::DATE_IMMUTABLE);
+            ->where('e.capacity > 0')
+            ->andWhere('e.date >= :today')
+            ->setParameter('today', $today, Types::DATE_IMMUTABLE);
 
         // TODO: Se c'è tempo implementare ricerca per zona
         if (!is_null($request->getCity())) {
@@ -51,7 +59,7 @@ class ExcursionRepository extends ServiceEntityRepository
         }
 
         if (!is_null($request->getSeats())) {
-            $query->andWhere('e.capacity >= :seats')
+            $query->andWhere('e.seats_available >= :seats')
                 ->setParameter('seats', $request->getSeats());
         }
 
