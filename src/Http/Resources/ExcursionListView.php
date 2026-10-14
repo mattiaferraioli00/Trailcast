@@ -1,20 +1,17 @@
 <?php
 
-namespace App\Http\Views;
+namespace App\Http\Resources;
 
 use App\Dto\Excursion\ExcursionForecast;
 use App\Dto\Excursion\Forecast;
 use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
 
-class ExcursionListView
+readonly class ExcursionListView
 {
     /** @var PaginatedResult<ExcursionForecast> */
-    private readonly PaginatedResult $result;
+    private PaginatedResult $result;
 
-    /**
-     * @param PaginatedResult<ExcursionForecast> $result
-     */
     public function __construct(PaginatedResult $result)
     {
         $this->result = $result;
@@ -63,7 +60,7 @@ class ExcursionListView
     protected function excursion(Excursion $excursion, ?Forecast $forecast): array
     {
         return [
-            'id' => (string) $excursion->getId(),
+            'id' => $excursion->getId(),
             'title' => $excursion->getTitle(),
             'description' => $excursion->getDescription(),
             'city' => $excursion->getCity(),

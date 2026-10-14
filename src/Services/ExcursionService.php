@@ -8,10 +8,14 @@ use App\Dto\Excursion\Coordinates;
 use App\Dto\Excursion\ExcursionForecast;
 use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
+use App\Entity\Bookings;
+use App\Exceptions\NotEnoughSeatsException;
+use App\Http\Requests\BookingExcursionRequest;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
 use App\Services\Cache\CachedForecastService;
 use App\Traits\LoggerTrait;
+use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class ExcursionService implements ExcursionServiceInterface
@@ -101,5 +105,33 @@ class ExcursionService implements ExcursionServiceInterface
             $request->getPage(),
             $request->getPerPage(),
         );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function bookExcursion(Excursion $excursion, BookingExcursionRequest $request): Bookings
+    {
+        return $this->entityManager->wrapInTransaction(function () use ($excursion, $request): Bookings {
+            $this->entityManager->refresh($excursion, LockMode::PESSIMISTIC_WRITE);
+
+            if (!$excursion->isBookable($request->getSeats())) {
+                throw new NotEnoughSeatsException();
+            }
+
+            $excursion->reserveSeats($request->getSeats());
+
+            $booking = new Bookings(
+                name: $request->getCustomerName(),
+                email: $request->getCustomerEmail(),
+                seats: $request->getSeats(),
+                excursion: $excursion
+            );
+
+            $this->entityManager->persist($booking);
+            $this->entityManager->flush();
+
+            return $booking;
+        });
     }
 }
