@@ -2,13 +2,14 @@
 
 namespace App\Contracts\Services;
 
-use App\Dto\ExcursionForecast;
-use App\Dto\PaginatedResult;
+use App\Dto\Excursion\ExcursionForecast;
+use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
 use App\Exceptions\LocationNotFoundException;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
+use Psr\Cache\InvalidArgumentException;
 
 interface ExcursionServiceInterface
 {
@@ -29,6 +30,7 @@ interface ExcursionServiceInterface
      *
      * @param SearchExcursionRequest $request Validated filters and pagination of the search.
      * @return PaginatedResult A page of {@see ExcursionForecast} items, with the total number of matches.
+     * @throws InvalidArgumentException
      */
     public function searchExcursions(SearchExcursionRequest $request): PaginatedResult;
 }

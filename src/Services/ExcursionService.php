@@ -2,25 +2,26 @@
 
 namespace App\Services;
 
+use App\Contracts\ExternalRepositories\OpenMeteoRepositoryInterface;
 use App\Contracts\Services\ExcursionServiceInterface;
-use App\Contracts\Services\OpenMeteoServiceInterface;
-use App\Dto\Coordinates;
-use App\Dto\ExcursionForecast;
-use App\Dto\PaginatedResult;
+use App\Dto\Excursion\Coordinates;
+use App\Dto\Excursion\ExcursionForecast;
+use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
+use App\Services\Cache\CachedForecastService;
+use App\Traits\LoggerTrait;
 use Doctrine\ORM\EntityManagerInterface;
-use Psr\Log\LoggerInterface;
 
 class ExcursionService implements ExcursionServiceInterface
 {
+    use LoggerTrait;
 
     public function __construct(
-        protected readonly OpenMeteoServiceInterface $openMeteoService,
-        protected readonly OpenMeteoForecastService $openMeteoForecastService,
+        protected readonly OpenMeteoRepositoryInterface $openMeteoRepository,
+        protected readonly CachedForecastService $cachedForecastService,
         protected readonly EntityManagerInterface $entityManager,
-        protected readonly LoggerInterface $logger,
     )
     {
     }
@@ -35,7 +36,7 @@ class ExcursionService implements ExcursionServiceInterface
             'country' => $request->getCountry(),
         ]);
 
-        $coordinates = $this->openMeteoService->locateCoordinates($request->getCity(), $request->getCountry());
+        $coordinates = $this->openMeteoRepository->geocode($request->getCity(), $request->getCountry());
 
         $this->logger->debug('Coordinates located.', [
             'latitude' => $coordinates->getLatitude(),
@@ -78,7 +79,7 @@ class ExcursionService implements ExcursionServiceInterface
         foreach ($page->getItems() as $excursion) {
             $location = sprintf('%.2f_%.2f', $excursion->getLatitude(), $excursion->getLongitude());
 
-            $seriesByLocation[$location] ??= $this->openMeteoForecastService->getWeatherData(
+            $seriesByLocation[$location] ??= $this->cachedForecastService->getDailyForecast(
                 new Coordinates($excursion->getLatitude(), $excursion->getLongitude())
             );
 

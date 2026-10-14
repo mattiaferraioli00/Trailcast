@@ -1,8 +1,6 @@
 <?php
 
-namespace App\Dto;
-
-use Symfony\Component\Validator\Constraints as Assert;
+namespace App\Dto\Excursion;
 
 class Coordinates
 {
