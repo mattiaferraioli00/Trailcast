@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Contracts\Services\ExcursionForecastServiceInterface;
 use App\Contracts\Services\ExcursionServiceInterface;
 use App\Contracts\Services\OpenMeteoServiceInterface;
 use App\Dto\Coordinates;
@@ -18,7 +17,6 @@ class ExcursionService implements ExcursionServiceInterface
 {
 
     public function __construct(
-        protected readonly ExcursionForecastServiceInterface $forecastService,
         protected readonly OpenMeteoServiceInterface $openMeteoService,
         protected readonly OpenMeteoForecastService $openMeteoForecastService,
         protected readonly EntityManagerInterface $entityManager,
@@ -63,8 +61,16 @@ class ExcursionService implements ExcursionServiceInterface
         return $excursion;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function searchExcursions(SearchExcursionRequest $request): PaginatedResult
     {
+        $this->logger->debug('Loading bookable excursions.', [
+            'page' => $request->getPage(),
+            'per_page' => $request->getPerPage(),
+        ]);
+
         $page = $this->entityManager->getRepository(Excursion::class)->findBookable($request, (new \DateTimeImmutable('now'))->setTime(0, 0));
         $seriesByLocation = [];
         $items = [];
@@ -81,6 +87,12 @@ class ExcursionService implements ExcursionServiceInterface
                 $seriesByLocation[$location][$excursion->getDate()->format('Y-m-d')] ?? null,
             );
         }
+
+        $this->logger->info('Excursion search completed.', [
+            'excursions' => count($items),
+            'forecast_locations' => count($seriesByLocation),
+            'total' => $page->getTotalCount(),
+        ]);
 
         return new PaginatedResult(
             $items,

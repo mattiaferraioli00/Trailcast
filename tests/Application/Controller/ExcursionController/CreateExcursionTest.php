@@ -165,7 +165,7 @@ class CreateExcursionTest extends WebTestCase
     {
         $this->client->request(
             'POST',
-            '/excursions',
+            '/api/excursions',
             [],
             [],
             ['CONTENT_TYPE' => 'application/json'],

@@ -2,6 +2,7 @@
 
 namespace App\Contracts\Services;
 
+use App\Dto\ExcursionForecast;
 use App\Dto\PaginatedResult;
 use App\Entity\Excursion;
 use App\Exceptions\LocationNotFoundException;
@@ -22,5 +23,12 @@ interface ExcursionServiceInterface
      */
     public function createExcursion(CreateExcursionRequest $request): Excursion;
 
+    /**
+     * Searches the bookable excursions matching the request filters and attaches to each one the weather
+     * forecast of its day. A missing forecast (provider unavailable or day out of range) is not an error.
+     *
+     * @param SearchExcursionRequest $request Validated filters and pagination of the search.
+     * @return PaginatedResult A page of {@see ExcursionForecast} items, with the total number of matches.
+     */
     public function searchExcursions(SearchExcursionRequest $request): PaginatedResult;
 }

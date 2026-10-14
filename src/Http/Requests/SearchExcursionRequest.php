@@ -10,11 +10,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 class SearchExcursionRequest
 {
 
-    #[Assert\NotBlank]
+
     #[Assert\Length(max: 255)]
     public ?string $city = null;
 
-    #[Assert\NotBlank]
     #[Assert\Country]
     public ?string $country = null;
 
@@ -39,8 +38,8 @@ class SearchExcursionRequest
     public function __construct(
         ?string $city = null,
         ?string $country = null,
-        ?string $dateFrom = null,
-        ?string $dateTo = null,
+        ?DateTime $dateFrom = null,
+        ?DateTime $dateTo = null,
         ?int $seats = null,
         int $page = 1,
         int $perPage = 20,
