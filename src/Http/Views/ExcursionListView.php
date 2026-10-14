@@ -2,9 +2,9 @@
 
 namespace App\Http\Views;
 
-use App\Dto\ExcursionForecast;
-use App\Dto\Forecast;
-use App\Dto\PaginatedResult;
+use App\Dto\Excursion\ExcursionForecast;
+use App\Dto\Excursion\Forecast;
+use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
 
 class ExcursionListView

@@ -4,7 +4,7 @@ namespace App\Tests\Application\Controller\ExcursionController;
 
 use App\Contracts\Services\OpenMeteoServiceInterface;
 use App\Controller\ExcursionController;
-use App\Dto\Coordinates;
+use App\Dto\Excursion\Coordinates;
 use App\Entity\Excursion;
 use App\Exceptions\LocationNotFoundException;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
