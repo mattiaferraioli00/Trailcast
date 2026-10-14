@@ -16,6 +16,8 @@
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "7.4.*",
+        "symfony/http-client": "7.4.*",
+        "symfony/intl": "7.4.*",
         "symfony/monolog-bundle": "^4.1",
         "symfony/property-access": "7.4.*",
         "symfony/property-info": "7.4.*",
@@ -63,6 +65,23 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "db:setup": [
+            "bin/console doctrine:database:create --if-not-exists",
+            "bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration"
+        ],
+        "db:setup-test": [
+            "bin/console doctrine:database:create --env=test --if-not-exists",
+            "bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration"
+        ],
+        "trailcast-docker": [
+            "@composer install --no-interaction --prefer-dist",
+            "@db:setup",
+            "@db:setup-test"
+        ],
+        "test": [
+            "@db:setup-test",
+            "bin/phpunit"
         ]
     },
     "conflict": {
@@ -76,6 +95,7 @@
         }
     },
     "require-dev": {
+        "dama/doctrine-test-bundle": "^8.7",
         "doctrine/doctrine-fixtures-bundle": "^4.3",
         "phpunit/phpunit": "^13.4",
         "symfony/browser-kit": "7.4.*",

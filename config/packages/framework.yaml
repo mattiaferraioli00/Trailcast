@@ -8,6 +8,12 @@ framework:
     #esi: true
     #fragments: true
 
+    http_client:
+        scoped_clients:
+            open_meteo_geocoding.client:
+                base_uri: 'https://geocoding-api.open-meteo.com/v1/'
+                timeout: 3
+
 when@test:
     framework:
         test: true
