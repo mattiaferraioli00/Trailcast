@@ -13,6 +13,9 @@ framework:
             open_meteo_geocoding.client:
                 base_uri: 'https://geocoding-api.open-meteo.com/v1/'
                 timeout: 3
+            open_meteo_forecast.client:
+                base_uri: 'https://api.open-meteo.com/v1/'
+                timeout: 3
 
 when@test:
     framework:

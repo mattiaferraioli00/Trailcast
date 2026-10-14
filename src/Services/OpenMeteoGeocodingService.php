@@ -4,14 +4,14 @@ namespace App\Services;
 
 use App\Contracts\Services\OpenMeteoServiceInterface;
 use App\Dto\Coordinates;
-use App\Exceptions\GeocodingUnavailableException;
 use App\Exceptions\LocationNotFoundException;
+use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use Exception;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class OpenMeteoGeocodingService implements OpenMeteoServiceInterface
-{
+{// TODO: spostare logger in TrailcastService
     public function __construct(
         protected readonly HttpClientInterface $openMeteoGeocodingClient,
         protected readonly LoggerInterface $logger,

@@ -3,8 +3,8 @@
 namespace App\Contracts\Services;
 
 use App\Dto\Coordinates;
-use App\Exceptions\GeocodingUnavailableException;
 use App\Exceptions\LocationNotFoundException;
+use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 
 interface OpenMeteoServiceInterface
 {

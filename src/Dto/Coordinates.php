@@ -6,9 +6,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class Coordinates
 {
-    public float $longitude;
+    private float $longitude;
 
-    public float $latitude;
+    private float $latitude;
 
 
     public function __construct(
