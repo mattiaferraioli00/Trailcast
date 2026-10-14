@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Views;
+namespace App\Http\Resources;
 
 use App\Entity\Excursion;
 
-class ExcursionView
+readonly class ExcursionView
 {
     public int $id;
     public string $title;
@@ -13,7 +13,6 @@ class ExcursionView
     public string $country;
     public string $date;
     public int $capacity;
-
     public float $latitude;
     public float $longitude;
 

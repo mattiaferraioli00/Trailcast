@@ -2,14 +2,19 @@
 
 namespace App\Controller;
 
+use App\Contracts\Services\BookingServiceInterface;
 use App\Contracts\Services\ExcursionServiceInterface;
+use App\Entity\Excursion;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
+use App\Http\Requests\BookingExcursionRequest;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
-use App\Http\Views\ExcursionListView;
-use App\Http\Views\ExcursionView;
+use App\Http\Resources\BookingView;
+use App\Http\Resources\ExcursionListView;
+use App\Http\Resources\ExcursionView;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use OpenApi\Attributes as OA;
+use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,7 +39,7 @@ class ExcursionController extends AbstractController
      * Creates a new excursion from the request payload.
      *
      * @param CreateExcursionRequest $request Payload mapped and validated by {@see MapRequestPayload}.
-     * @return JsonResponse The created excursion, with HTTP status 201.
+     * @return ExcursionView The created excursion, with HTTP status 201.
      * @throws GeocodingUnavailableException
      */
     #[Route('', name: "create-excursion", methods: ['POST'])]
@@ -55,7 +60,7 @@ class ExcursionController extends AbstractController
         response: 422,
         description: 'Unprocessable content.',
     )]
-    public function create(#[MapRequestPayload] CreateExcursionRequest $request): JsonResponse
+    public function create(#[MapRequestPayload] CreateExcursionRequest $request): ExcursionView
     {
         $this->logger->debug("Creating new excursion.");
 
@@ -63,7 +68,7 @@ class ExcursionController extends AbstractController
 
         $this->logger->debug("Excursion created.", ['excursion_id' => $excursion->getId()]);
 
-        return $this->json(new ExcursionView($excursion), Response::HTTP_CREATED);
+        return new ExcursionView($excursion);
     }
 
     /**
@@ -72,7 +77,8 @@ class ExcursionController extends AbstractController
      *
      * @param SearchExcursionRequest $request Optional filters (city, country, date range, seats) and pagination,
      *                                        mapped from the query string and validated by {@see MapQueryString}.
-     * @return JsonResponse A page of excursions with their forecast, with HTTP status 200.
+     * @return ExcursionListView A page of excursions with their forecast, with HTTP status 200.
+     * @throws InvalidArgumentException
      */
     #[Route('', name: 'get-excursions', methods: ['GET'])]
     #[OA\Response(
@@ -85,9 +91,8 @@ class ExcursionController extends AbstractController
         description: 'Unprocessable content.',
     )]
     public function search(
-        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)]
-        SearchExcursionRequest $request = new SearchExcursionRequest()
-    ): JsonResponse
+        #[MapQueryString] SearchExcursionRequest $request = new SearchExcursionRequest()
+    ): ExcursionListView
     {
         $this->logger->debug('Searching excursions.', [
             'city' => $request->getCity(),
@@ -106,6 +111,31 @@ class ExcursionController extends AbstractController
             'total' => $excursions->getTotal(),
         ]);
 
-        return $this->json(new ExcursionListView($excursions), Response::HTTP_OK);
+        return new ExcursionListView($excursions);
+    }
+
+    #[Route('/{id}/bookings', name: 'book-excursion', methods: ['POST'])]
+    #[OA\Response(
+        response: 201,
+        description: 'Booking created successfully. Returns the booking ID, excursion ID, and number of seats reserved.',
+        content: new Model(type: BookingView::class)
+
+    )]
+    #[OA\Response(
+        response: 409,
+        description: 'Insufficient seats available on the excursion to fulfill the booking request.',
+    )]
+    #[OA\Response(
+        response: 404,
+        description: 'The requested excursion was not found.',
+    )]
+    public function book(
+        Excursion $excursion,
+        #[MapRequestPayload] BookingExcursionRequest $request
+    )
+    {
+        $booking = $this->excursionService->bookExcursion($excursion, $request);
+
+        return new BookingView($booking);
     }
 }

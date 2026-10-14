@@ -214,4 +214,14 @@ class Excursion
 
         return $this;
     }
+
+    public function isBookable(int $seats): bool
+    {
+        return $this->seats_available >= $seats;
+    }
+
+    public function reserveSeats(int $seats): void
+    {
+        $this->seats_available -= $seats;
+    }
 }
