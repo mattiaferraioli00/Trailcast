@@ -1,0 +1,4 @@
+CREATE SCHEMA IF NOT EXISTS `trailcast`;
+CREATE SCHEMA IF NOT EXISTS `trailcast_test`;
+GRANT ALL PRIVILEGES ON *.* TO 'usertrailcast'@'%';
+FLUSH PRIVILEGES;
