@@ -116,7 +116,11 @@ class ExcursionService implements ExcursionServiceInterface
             $this->entityManager->refresh($excursion, LockMode::PESSIMISTIC_WRITE);
 
             if (!$excursion->isBookable($request->getSeats())) {
-                throw new NotEnoughSeatsException();
+                throw new NotEnoughSeatsException(
+                    message: "Not enough seats available for excursion with ID {$excursion->getId()}",
+                    excursion: $excursion,
+                    seats: $request->getSeats()
+                );
             }
 
             $excursion->reserveSeats($request->getSeats());

@@ -2,14 +2,23 @@
 
 namespace App\Exceptions;
 
-use Symfony\Component\Config\Definition\Exception\Exception;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
+use Throwable;
 
 #[WithHttpStatus(404)]
-class LocationNotFoundException extends Exception
+class LocationNotFoundException extends TException
 {
-    public static function forCity(string $city, string $country): self
+    public function __construct(
+        string $message = "No location found",
+        int $code = 404,
+        ?Throwable $previous = null,
+        ?string $city = null,
+        ?string $country = null
+    )
     {
-        return new self(sprintf('Nessuna località trovata per "%s, %s".', $city, $country));
+        parent::__construct($message, $code, $previous);
+
+        $this->addParam("city", $city);
+        $this->addParam("country", $country);
     }
 }
