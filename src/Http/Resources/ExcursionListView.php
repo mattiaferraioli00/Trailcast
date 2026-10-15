@@ -24,7 +24,7 @@ readonly class ExcursionListView
     {
         $data = [];
         foreach ($this->result->getItems() as $item) {
-            $data[] = $this->excursion($item->getExcursion(), $item->getForecast());
+            $data[] = $this->excursion($item);
         }
 
         return $data;
@@ -57,8 +57,10 @@ readonly class ExcursionListView
     /**
      * @return array<string, mixed>
      */
-    protected function excursion(Excursion $excursion, ?Forecast $forecast): array
+    protected function excursion(ExcursionForecast $item): array
     {
+        $excursion = $item->getExcursion();
+
         return [
             'id' => $excursion->getId(),
             'title' => $excursion->getTitle(),
@@ -68,26 +70,31 @@ readonly class ExcursionListView
             'date' => $excursion->getDate()->format('Y-m-d'),
             'capacity' => $excursion->getCapacity(),
             'seats_available' => $excursion->getSeatsAvailable(),
-            'forecast' => $this->forecast($forecast),
+            'forecast' => $this->forecast($item),
         ];
     }
 
     /**
-     * A missing forecast (date outside the 16-day window or weather provider
-     * unavailable) is rendered as null.
+     * Always present, with a stable shape:
+     * - available: data holds the daily forecast
+     * - not_yet_available: date beyond the 16-day window, available_from says when it will be
+     * - unavailable: weather provider unreachable
      *
-     * @return array<string, int|float|null>|null
+     * @return array{status: string, available_from: string|null, data: array<string, int|float|null>|null}
      */
-    protected function forecast(?Forecast $forecast): ?array
+    protected function forecast(ExcursionForecast $item): array
     {
-        if (is_null($forecast)) {
-            return null;
-        }
+        $forecast = $item->getForecast();
 
         return [
-            'temperature_max_celsius' => $forecast->getTemperatureMax(),
-            'temperature_min_celsius' => $forecast->getTemperatureMin(),
-            'precipitation_probability_percent' => $forecast->getPrecipitationProbability(),
+            'status' => $item->getStatus()->value,
+            'available_from' => $item->getAvailableFrom()?->format('Y-m-d'),
+            'data' => is_null($forecast) ? null : [
+                'weather_code' => $forecast->getWeatherCode(),
+                'temperature_max_celsius' => $forecast->getTemperatureMax(),
+                'temperature_min_celsius' => $forecast->getTemperatureMin(),
+                'precipitation_probability_percent' => $forecast->getPrecipitationProbability(),
+            ],
         ];
     }
 }

@@ -10,11 +10,14 @@ use App\Dto\Excursion\PaginatedResult;
 use App\Entity\Excursion;
 use App\Entity\Bookings;
 use App\Exceptions\NotEnoughSeatsException;
+use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
+use App\ExternalRepositories\OpenMeteoRepository;
 use App\Http\Requests\BookingExcursionRequest;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
 use App\Services\Cache\CachedForecastService;
 use App\Traits\LoggerTrait;
+use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -76,21 +79,24 @@ class ExcursionService implements ExcursionServiceInterface
             'per_page' => $request->getPerPage(),
         ]);
 
-        $page = $this->entityManager->getRepository(Excursion::class)->findBookable($request, (new \DateTimeImmutable('now'))->setTime(0, 0));
+        $page = $this->entityManager->getRepository(Excursion::class)->findBookable($request, (new DateTimeImmutable('now'))->setTime(0, 0));
         $seriesByLocation = [];
         $items = [];
 
         foreach ($page->getItems() as $excursion) {
-            $location = sprintf('%.2f_%.2f', $excursion->getLatitude(), $excursion->getLongitude());
+            $coordinates = new Coordinates($excursion->getLatitude(), $excursion->getLongitude());
+            $location = $coordinates->roundedKey();
 
-            $seriesByLocation[$location] ??= $this->cachedForecastService->getDailyForecast(
-                new Coordinates($excursion->getLatitude(), $excursion->getLongitude())
-            );
+            if (!array_key_exists($location, $seriesByLocation)) {
+                try {
+                    $seriesByLocation[$location] = $this->cachedForecastService->getDailyForecast($coordinates);
+                } catch (OpenMeteoUnavailableException $e) {
+                    $this->logger->warning("Forecast unavailable: {$e->getMessage()}.", ['location' => $location, 'exception' => $e]);
+                    $seriesByLocation[$location] = null;
+                }
+            }
 
-            $items[] = new ExcursionForecast(
-                $excursion,
-                $seriesByLocation[$location][$excursion->getDate()->format('Y-m-d')] ?? null,
-            );
+            $items[] = $this->buildExcursionForecast($excursion, $seriesByLocation[$location]);
         }
 
         $this->logger->info('Excursion search completed.', [
@@ -105,6 +111,29 @@ class ExcursionService implements ExcursionServiceInterface
             $request->getPage(),
             $request->getPerPage(),
         );
+    }
+
+    protected function buildExcursionForecast(Excursion $excursion, ?array $series): ExcursionForecast
+    {
+        $date = $excursion->getDate()->format('Y-m-d');
+
+        if (is_null($series)) {
+            return ExcursionForecast::unavailable($excursion);
+        }
+
+        if (isset($series[$date])) {
+            return ExcursionForecast::available($excursion, $series[$date]);
+        }
+
+        if (!empty($series) && $date > array_key_last($series)) {
+            return ExcursionForecast::notYetAvailable(
+                $excursion,
+                DateTimeImmutable::createFromInterface($excursion->getDate())
+                    ->modify(sprintf('-%d days', OpenMeteoRepository::FORECAST_DAYS - 1)),
+            );
+        }
+
+        return ExcursionForecast::unavailable($excursion);
     }
 
     /**
