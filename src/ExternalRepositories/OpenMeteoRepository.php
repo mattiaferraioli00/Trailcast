@@ -55,7 +55,7 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
                 'exception' => $e,
             ]);
 
-            throw new GeocodingUnavailableException('Open-Meteo geocoding is unavailable.');
+            throw new GeocodingUnavailableException();
         }
 
         $result = $data['results'][0] ?? null;
@@ -66,7 +66,8 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
                 'country' => $country,
             ]);
 
-            throw LocationNotFoundException::forCity($city, $country);
+            throw new LocationNotFoundException(
+                message: "No location found for $city and $country", city: $city, country: $country);
         }
 
         return new Coordinates(
@@ -96,12 +97,13 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
                 ],
             ])->toArray();
         } catch (Exception $e) {
-            throw new OpenMeteoUnavailableException('Forecast request failed.', previous: $e);
+            throw new OpenMeteoUnavailableException();
         }
 
         $daily = $data['daily'] ?? null;
+
         if (!is_array($daily) || !is_array($daily['time'] ?? null)) {
-            throw new OpenMeteoUnprocessableException('Unexpected forecast response format.');
+            return [];
         }
 
         $forecasts = [];
