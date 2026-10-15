@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use App\Entity\Bookings;
 
-class BookingView
+readonly class BookingView
 {
     public int $id;
     public string $name;

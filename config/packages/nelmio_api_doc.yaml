@@ -10,6 +10,38 @@ nelmio_api_doc:
                 - `forecast` is `null` when the date is beyond Open-Meteo's 16-day window or the provider is unavailable.
                 - Errors follow RFC 9457 (`application/problem+json`).
             version: 1.0.0
+        components:
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+                    bearerFormat: JWT
+        paths:
+            /api/login:
+                post:
+                    tags: [ Auth ]
+                    summary: Ottiene un token JWT
+                    requestBody:
+                        required: true
+                        content:
+                            application/json:
+                                schema:
+                                    type: object
+                                    required: [ email, password ]
+                                    properties:
+                                        email: { type: string, example: staff@trailcast.test }
+                                        password: { type: string, example: staff123 }
+                    responses:
+                        '200':
+                            description: Login riuscito
+                            content:
+                                application/json:
+                                    schema:
+                                        type: object
+                                        properties:
+                                            token: { type: string }
+                        '401':
+                            description: Credenziali non valide
     areas: # to filter documented areas
         path_patterns:
             - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
