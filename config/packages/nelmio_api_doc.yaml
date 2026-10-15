@@ -8,7 +8,6 @@ nelmio_api_doc:
 
                 - Weather data from [Open-Meteo](https://open-meteo.com) (geocoding at creation, forecast at read time).
                 - `forecast` is `null` when the date is beyond Open-Meteo's 16-day window or the provider is unavailable.
-                - Errors follow RFC 9457 (`application/problem+json`).
             version: 1.0.0
         components:
             securitySchemes:
@@ -17,7 +16,7 @@ nelmio_api_doc:
                     scheme: bearer
                     bearerFormat: JWT
         paths:
-            /api/login:
+            /login:
                 post:
                     tags: [ Auth ]
                     summary: Ottiene un token JWT
@@ -45,3 +44,4 @@ nelmio_api_doc:
     areas: # to filter documented areas
         path_patterns:
             - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
+            - ^/excursions

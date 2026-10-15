@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Attributes\ResponseStatus;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ViewEvent;
@@ -22,11 +23,20 @@ class KernelViewJsonResponseListener
      */
     public function __invoke(ViewEvent $event): void
     {
+        $attributes = $event->controllerArgumentsEvent?->getAttributes(ResponseStatus::class) ?? [];
+        $status = ($attributes[0] ?? null)?->code;
+
         $json = $this->serializer->serialize(
             $event -> getControllerResult (),
             'json' ,
         );
 
-        $event->setResponse(new JsonResponse($json , json : true));
+        $event->setResponse(
+            new JsonResponse(
+                data: $json,
+                status: $status,
+                json: true
+            )
+        );
     }
 }

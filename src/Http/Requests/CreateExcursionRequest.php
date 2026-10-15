@@ -25,7 +25,7 @@ class CreateExcursionRequest
     #[Assert\Country]
     public string $country;
 
-    #[Context([DateTimeNormalizer::FORMAT_KEY => 'd-m-Y'])]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
     #[Assert\GreaterThan('today')]
     public DateTime $date;
 

@@ -17,12 +17,12 @@ class SearchExcursionRequest
     #[Assert\Country]
     public ?string $country = null;
 
-    #[Context([DateTimeNormalizer::FORMAT_KEY => 'd-m-Y'])]
-    #[Assert\GreaterThan('today')]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
+    #[Assert\GreaterThanOrEqual('today')]
     #[Assert\LessThan(propertyPath: 'dateTo')]
     public ?DateTime $dateFrom = null;
 
-    #[Context([DateTimeNormalizer::FORMAT_KEY => 'd-m-Y'])]
+    #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
     #[Assert\GreaterThan(propertyPath: 'dateFrom')]
     public ?DateTime $dateTo = null;
 
