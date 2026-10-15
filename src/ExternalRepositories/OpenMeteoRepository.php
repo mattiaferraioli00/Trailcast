@@ -11,6 +11,7 @@ use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
 use App\Exceptions\OpenMeteo\OpenMeteoUnprocessableException;
 use App\Traits\LoggerTrait;
 use Exception;
+use Symfony\Bundle\MakerBundle\Str;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -43,7 +44,7 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
                 'query' => [
                     'name' => $city,
                     'countryCode' => $country,
-                    'count' => 1,
+                    'count' => 10,
                     'language' => 'it',
                     'format' => 'json',
                 ],
@@ -58,22 +59,24 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
             throw new GeocodingUnavailableException();
         }
 
-        $result = $data['results'][0] ?? null;
+        $results = $data['results'] ?? [];
 
-        if (is_null($result)) {
-            $this->logger->warning('Open-Meteo geocoding returned no results.', [
-                'city' => $city,
-                'country' => $country,
-            ]);
-
-            throw new LocationNotFoundException(
-                message: "No location found for $city and $country", city: $city, country: $country);
+        foreach ($results as $result) {
+            if (mb_strtolower($result['name']) === mb_strtolower($city)) {
+                return new Coordinates(
+                    latitude: (float) $result['latitude'],
+                    longitude: (float) $result['longitude']
+                );
+            }
         }
 
-        return new Coordinates(
-            latitude: (float) $result['latitude'],
-            longitude: (float) $result['longitude']
-        );
+        $this->logger->error('Open-Meteo geocoding no matching results.', [
+            'city' => $city,
+            'country' => $country,
+        ]);
+
+        throw new LocationNotFoundException(
+            message: "No location found for $city and $country", city: $city, country: $country);
     }
 
     /**

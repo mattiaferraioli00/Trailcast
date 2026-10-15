@@ -12,13 +12,21 @@ use App\Exceptions\OpenMeteo\OpenMeteoUnprocessableException;
 interface OpenMeteoRepositoryInterface
 {
     /**
-     * Resolves the geographic coordinates of a city.
+     * Resolves a city name to coordinates using the Open-Meteo Geocoding API.
      *
-     * @param string $city Name of the city to look up.
-     * @param string $country ISO 3166-1 alpha-2 country code (e.g. "IT").
-     * @return Coordinates Latitude and longitude of the best match.
-     * @throws LocationNotFoundException If the geocoding provider returns no match.
-     * @throws GeocodingUnavailableException If the geocoding provider cannot be reached or answers with an error.
+     * Open-Meteo matches names by prefix, so up to 10 results are requested and only
+     * one whose name is identical to the requested city is accepted (case-insensitive,
+     * accent-sensitive). When several places share the same name, the first one returned
+     * by Open-Meteo is used. Colloquial or abbreviated names and localities not indexed
+     * by Open-Meteo (e.g. many hamlets) are not resolved.
+     *
+     * @param string $city    City name, in Italian (results are localized with language=it).
+     * @param string $country ISO 3166-1 alpha-2 country code used to filter results.
+     *
+     * @return Coordinates Coordinates of the matched location.
+     *
+     * @throws GeocodingUnavailableException When the Open-Meteo request fails.
+     * @throws LocationNotFoundException     When no result matches the city name exactly.
      */
     public function geocode(
         string $city,
