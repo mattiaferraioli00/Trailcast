@@ -215,9 +215,20 @@ class Excursion
         return $this;
     }
 
-    public function isBookable(int $seats): bool
+    public function isPast(): bool
+    {
+        return $this->date < new DateTime('today');
+    }
+
+    public function hasAvailableSeats(int $seats): bool
     {
         return $this->seats_available >= $seats;
+    }
+
+    public function isBookable(int $seats): bool
+    {
+        return $this->hasAvailableSeats($seats)
+            && !$this->isPast();
     }
 
     public function reserveSeats(int $seats): void

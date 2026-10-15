@@ -3,16 +3,13 @@
 namespace App\ExternalRepositories;
 
 use App\Contracts\ExternalRepositories\OpenMeteoRepositoryInterface;
-use App\Dto\Excursion\Coordinates;
-use App\Dto\Excursion\Forecast;
+use App\Dto\Coordinates;
+use App\Dto\Forecast;
 use App\Exceptions\LocationNotFoundException;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
-use App\Exceptions\OpenMeteo\OpenMeteoUnprocessableException;
 use App\Traits\LoggerTrait;
 use Exception;
-use Symfony\Bundle\MakerBundle\Str;
-use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -25,7 +22,6 @@ class OpenMeteoRepository implements OpenMeteoRepositoryInterface
     public function __construct(
         protected readonly HttpClientInterface $openMeteoGeocodingClient,
         protected readonly HttpClientInterface $openMeteoForecastClient,
-        protected readonly CacheInterface $cache,
     )
     {
     }

@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Contracts\ExternalRepositories\OpenMeteoRepositoryInterface;
 use App\Contracts\Services\ExcursionServiceInterface;
-use App\Dto\Excursion\Coordinates;
-use App\Dto\Excursion\ExcursionForecast;
-use App\Dto\Excursion\PaginatedResult;
-use App\Entity\Excursion;
+use App\Dto\Coordinates;
+use App\Dto\ExcursionForecast;
+use App\Dto\Forecast;
+use App\Dto\PaginatedResult;
 use App\Entity\Bookings;
+use App\Entity\Excursion;
 use App\Exceptions\NotEnoughSeatsException;
 use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
 use App\ExternalRepositories\OpenMeteoRepository;
@@ -20,6 +21,7 @@ use App\Traits\LoggerTrait;
 use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Monolog\Attribute\WithMonologChannel;
 
 class ExcursionService implements ExcursionServiceInterface
 {
@@ -38,14 +40,15 @@ class ExcursionService implements ExcursionServiceInterface
      */
     public function createExcursion(CreateExcursionRequest $request): Excursion
     {
-        $this->logger->info('Locating coordinates for new excursion.', [
+        $this->logger->debug('Geocoding excursion city.', [
             'city' => $request->getCity(),
             'country' => $request->getCountry(),
         ]);
 
         $coordinates = $this->openMeteoRepository->geocode($request->getCity(), $request->getCountry());
 
-        $this->logger->debug('Coordinates located.', [
+        $this->logger->debug('Excursion city geocoded.', [
+            'city' => $request->getCity(),
             'latitude' => $coordinates->getLatitude(),
             'longitude' => $coordinates->getLongitude(),
         ]);
@@ -64,7 +67,13 @@ class ExcursionService implements ExcursionServiceInterface
         $this->entityManager->persist($excursion);
         $this->entityManager->flush();
 
-        $this->logger->info('Excursion persisted.', ['excursion_id' => $excursion->getId()]);
+        $this->logger->info('Excursion created.', [
+            'excursion_id' => $excursion->getId(),
+            'city' => $excursion->getCity(),
+            'country' => $excursion->getCountry(),
+            'date' => $excursion->getDate()->format('Y-m-d'),
+            'capacity' => $excursion->getCapacity(),
+        ]);
 
         return $excursion;
     }
@@ -74,12 +83,7 @@ class ExcursionService implements ExcursionServiceInterface
      */
     public function searchExcursions(SearchExcursionRequest $request): PaginatedResult
     {
-        $this->logger->debug('Loading bookable excursions.', [
-            'page' => $request->getPage(),
-            'per_page' => $request->getPerPage(),
-        ]);
-
-        $page = $this->entityManager->getRepository(Excursion::class)->findBookable($request, (new DateTimeImmutable('now'))->setTime(0, 0));
+        $page = $this->entityManager->getRepository(Excursion::class)->findBookable($request, new DateTimeImmutable('today'));
         $seriesByLocation = [];
         $items = [];
 
@@ -91,7 +95,10 @@ class ExcursionService implements ExcursionServiceInterface
                 try {
                     $seriesByLocation[$location] = $this->cachedForecastService->getDailyForecast($coordinates);
                 } catch (OpenMeteoUnavailableException $e) {
-                    $this->logger->warning("Forecast unavailable: {$e->getMessage()}.", ['location' => $location, 'exception' => $e]);
+                    $this->logger->warning('Forecast unavailable, excursions returned without it.', [
+                        'location' => $location,
+                        'exception' => $e,
+                    ]);
                     $seriesByLocation[$location] = null;
                 }
             }
@@ -99,10 +106,11 @@ class ExcursionService implements ExcursionServiceInterface
             $items[] = $this->buildExcursionForecast($excursion, $seriesByLocation[$location]);
         }
 
-        $this->logger->info('Excursion search completed.', [
-            'excursions' => count($items),
-            'forecast_locations' => count($seriesByLocation),
+        $this->logger->debug('Excursion search completed.', [
+            'returned' => count($items),
             'total' => $page->getTotalCount(),
+            'forecast_locations' => count($seriesByLocation),
+            'forecast_unavailable_locations' => count(array_filter($seriesByLocation, 'is_null')),
         ]);
 
         return new PaginatedResult(
@@ -113,6 +121,17 @@ class ExcursionService implements ExcursionServiceInterface
         );
     }
 
+    /**
+     * Builds the forecast entry of an excursion from the daily series of its location.
+     *
+     * Whether a date is beyond the forecast window is decided from the last day of the series
+     * returned by Open-Meteo, which is computed in the location's timezone.
+     *
+     * @param Excursion                    $excursion Excursion to attach the forecast to.
+     * @param array<string, Forecast>|null $series    Daily forecasts indexed by date (Y-m-d), null if Open-Meteo was unreachable.
+     *
+     * @return ExcursionForecast The excursion with its forecast and forecast status.
+     */
     protected function buildExcursionForecast(Excursion $excursion, ?array $series): ExcursionForecast
     {
         $date = $excursion->getDate()->format('Y-m-d');
@@ -141,10 +160,17 @@ class ExcursionService implements ExcursionServiceInterface
      */
     public function bookExcursion(Excursion $excursion, BookingExcursionRequest $request): Bookings
     {
-        return $this->entityManager->wrapInTransaction(function () use ($excursion, $request): Bookings {
+        $booking = $this->entityManager->wrapInTransaction(function () use ($excursion, $request): Bookings {
             $this->entityManager->refresh($excursion, LockMode::PESSIMISTIC_WRITE);
 
             if (!$excursion->isBookable($request->getSeats())) {
+                $this->logger->info('Booking rejected.', [
+                    'excursion_id' => $excursion->getId(),
+                    'excursion_date' => $excursion->getDate()->format('Y-m-d'),
+                    'requested_seats' => $request->getSeats(),
+                    'seats_available' => $excursion->getSeatsAvailable(),
+                ]);
+
                 throw new NotEnoughSeatsException(
                     message: "Not enough seats available for excursion with ID {$excursion->getId()}",
                     excursion: $excursion,
@@ -166,5 +192,14 @@ class ExcursionService implements ExcursionServiceInterface
 
             return $booking;
         });
+
+        $this->logger->info('Booking created.', [
+            'booking_id' => $booking->getId(),
+            'excursion_id' => $excursion->getId(),
+            'seats' => $booking->getSeats(),
+            'seats_available' => $excursion->getSeatsAvailable(),
+        ]);
+
+        return $booking;
     }
 }

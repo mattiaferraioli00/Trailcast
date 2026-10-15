@@ -29,16 +29,25 @@ class BookingExcursionRequest
         $this->seats = $seats;
     }
 
+    /**
+     * @return string Name of the customer making the booking (not blank, max 255 characters).
+     */
     public function getCustomerName(): string
     {
         return $this->customer_name;
     }
 
+    /**
+     * @return string Email of the customer making the booking (valid address, max 255 characters).
+     */
     public function getCustomerEmail(): string
     {
         return $this->customer_email;
     }
 
+    /**
+     * @return int Number of seats to book (at least 1).
+     */
     public function getSeats(): int
     {
         return $this->seats;

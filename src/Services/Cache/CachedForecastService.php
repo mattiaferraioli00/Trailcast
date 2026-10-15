@@ -3,7 +3,8 @@
 namespace App\Services\Cache;
 
 use App\Contracts\ExternalRepositories\OpenMeteoRepositoryInterface;
-use App\Dto\Excursion\Coordinates;
+use App\Dto\Coordinates;
+use App\Dto\Forecast;
 use App\Traits\LoggerTrait;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -12,8 +13,7 @@ use Symfony\Contracts\Cache\ItemInterface;
 class CachedForecastService
 {
     use LoggerTrait;
-    private const CACHE_TTL = 3600;
-    private const TIMEZONE = 'Europe/Rome';
+    protected const CACHE_TTL = 3600;
 
     public function __construct(
         protected readonly OpenMeteoRepositoryInterface $openMeteoRepository,
@@ -22,19 +22,20 @@ class CachedForecastService
     }
 
     /**
-     * Returns the daily weather forecast for the given location.
+     * Returns the daily weather forecast of a location, from cache when available.
      *
-     * The whole forecast window is fetched with a single request and cached per
-     * location and day for CACHE_TTL seconds, so excursions in the same place
-     * share one cache entry whatever their date.
+     * The whole forecast window is fetched with a single request and cached per location and day
+     * for CACHE_TTL seconds, so excursions in the same place share one entry whatever their date.
+     * Early expiration is disabled (beta = 0): an entry is recomputed only after it expires, so a
+     * provider outage never discards a forecast that is still valid.
      *
-     * Failures are not propagated: if Open-Meteo is unreachable or returns an
-     * unexpected payload, the error is logged and an empty array is returned.
-     * Failed requests are never cached, so the next call retries.
+     * Failures are propagated and never cached, so the next call retries.
      *
      * @param Coordinates $coordinates Location to get the forecast for.
-     * @return array Forecasts indexed by date (Y-m-d); empty if the forecast is unavailable.
-     * @throws InvalidArgumentException
+     *
+     * @return array<string, Forecast> Forecasts indexed by local date (Y-m-d), starting from today.
+     *
+     * @throws InvalidArgumentException When the cache key is invalid.
      */
     public function getDailyForecast(Coordinates $coordinates): array
     {
@@ -50,12 +51,17 @@ class CachedForecastService
     }
 
     /**
-     * Builds the cache key for a location's forecast series.
+     * Builds the cache key of a location's forecast series.
      *
-     * The key contains today's date because the series starts from the day it is
-     * downloaded, and coordinates rounded to two decimals (~1 km) so that nearby
-     * excursions share the same entry. Bump CACHE_KEY_VERSION whenever the
-     * requested variables or the Forecast class change.
+     * The key contains:
+     * - a version, to bump whenever the requested variables or the Forecast class change,
+     *   so entries in the old format are never read back;
+     * - today's date, because the series starts from the day it is downloaded;
+     * - the coordinates rounded to two decimals (~1 km), so nearby excursions share the same entry.
+     *
+     * @param Coordinates $coordinates Location of the forecast.
+     *
+     * @return string Cache key, e.g. "forecast_v1_2026-10-15_45.85_9.39".
      */
     protected function cacheKey(Coordinates $coordinates): string
     {
