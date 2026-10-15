@@ -33,7 +33,7 @@ class ExcursionRepository extends ServiceEntityRepository
     public function findBookable(SearchExcursionRequest $request, \DateTimeImmutable $today): WindowPage
     {
         $query = $this->createQueryBuilder('e')
-            ->where('e.capacity > 0')
+            ->where('e.seats_available > 0')
             ->andWhere('e.date >= :today')
             ->setParameter('today', $today, Types::DATE_IMMUTABLE);
 

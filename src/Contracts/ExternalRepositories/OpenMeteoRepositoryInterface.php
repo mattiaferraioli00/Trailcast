@@ -31,7 +31,6 @@ interface OpenMeteoRepositoryInterface
      * @param Coordinates $coordinates Location to get the forecast for.
      * @return array<string, Forecast> Forecasts indexed by date (Y-m-d).
      * @throws OpenMeteoUnavailableException
-     * @throws OpenMeteoUnprocessableException
      */
     public function fetchDailyForecast(Coordinates $coordinates): array;
 }

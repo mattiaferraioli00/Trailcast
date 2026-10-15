@@ -28,4 +28,12 @@ class Coordinates
         return $this->latitude;
     }
 
+    /**
+     * Location key rounded to 2 decimals (~1 km): nearby points share
+     * the same forecast grid cell, so they share the same key.
+     */
+    public function roundedKey(): string
+    {
+        return sprintf('%.2F_%.2F', $this->latitude, $this->longitude);
+    }
 }
