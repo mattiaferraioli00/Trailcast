@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Attributes\ResponseStatus;
 use App\Contracts\Services\ExcursionServiceInterface;
 use App\Entity\Excursion;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
@@ -16,12 +17,13 @@ use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[Route('/api/excursions')]
+#[Route('/excursions')]
 #[OA\Tag(name: 'Excursions')]
 class ExcursionController extends AbstractController
 {
@@ -59,6 +61,7 @@ class ExcursionController extends AbstractController
         description: 'Unprocessable content.',
     )]
     #[IsGranted('ROLE_STAFF')]
+    #[ResponseStatus(Response::HTTP_CREATED)]
     public function create(#[MapRequestPayload] CreateExcursionRequest $request): ExcursionView
     {
         $this->logger->debug("Creating new excursion.");
@@ -89,6 +92,7 @@ class ExcursionController extends AbstractController
         response: 422,
         description: 'Unprocessable content.',
     )]
+    #[ResponseStatus(Response::HTTP_OK)]
     public function search(
         #[MapQueryString] SearchExcursionRequest $request = new SearchExcursionRequest()
     ): ExcursionListView
@@ -128,10 +132,11 @@ class ExcursionController extends AbstractController
         response: 404,
         description: 'The requested excursion was not found.',
     )]
+    #[ResponseStatus(Response::HTTP_CREATED)]
     public function book(
         Excursion $excursion,
         #[MapRequestPayload] BookingExcursionRequest $request
-    )
+    ): BookingView
     {
         $booking = $this->excursionService->bookExcursion($excursion, $request);
 

@@ -39,7 +39,7 @@ class CachedForecastService
     public function getDailyForecast(Coordinates $coordinates): array
     {
         $key = $this->cacheKey($coordinates);
-        
+
         return $this->cache->get($key, function (ItemInterface $item) use ($coordinates, $key): array {
                 $item->expiresAfter(self::CACHE_TTL);
 
@@ -57,10 +57,10 @@ class CachedForecastService
      * excursions share the same entry. Bump CACHE_KEY_VERSION whenever the
      * requested variables or the Forecast class change.
      */
-    private function cacheKey(Coordinates $coordinates): string
+    protected function cacheKey(Coordinates $coordinates): string
     {
         return sprintf(
-            'forecast_%s_%.2f',
+            'forecast_%s_%s',
             (new \DateTime())->format('Y-m-d'),
             $coordinates->roundedKey(),
         );
