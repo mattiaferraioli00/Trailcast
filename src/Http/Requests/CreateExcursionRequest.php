@@ -48,39 +48,52 @@ class CreateExcursionRequest
         $this->capacity = $capacity;
     }
 
+    /**
+     * @return string Title of the excursion (not blank, max 255 characters).
+     */
     public function getTitle(): string
     {
         return $this->title;
     }
 
+    /**
+     * @return string Description of the excursion (not blank, max 500 characters).
+     */
     public function getDescription(): string
     {
         return $this->description;
     }
 
-    public function setDescription(string $description): void
-    {
-        $this->description = $description;
-    }
-
+    /**
+     * @return string City where the excursion takes place (not blank, max 255 characters),
+     *                resolved to coordinates when the excursion is created.
+     */
     public function getCity(): string
     {
         return $this->city;
     }
 
+    /**
+     * @return string ISO 3166-1 alpha-2 country code of the city.
+     */
     public function getCountry(): string
     {
         return $this->country;
     }
 
+    /**
+     * @return DateTime Date of the excursion (YYYY-MM-DD in the payload, in the future).
+     */
     public function getDate(): DateTime
     {
         return $this->date;
     }
 
+    /**
+     * @return int Total number of seats of the excursion (greater than 0).
+     */
     public function getCapacity(): int
     {
         return $this->capacity;
     }
-
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Costants;
+namespace App\Constants;
 
 enum ForecastStatus: string
 {

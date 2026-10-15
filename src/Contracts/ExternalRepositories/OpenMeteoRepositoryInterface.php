@@ -2,8 +2,8 @@
 
 namespace App\Contracts\ExternalRepositories;
 
-use App\Dto\Excursion\Coordinates;
-use App\Dto\Excursion\Forecast;
+use App\Dto\Coordinates;
+use App\Dto\Forecast;
 use App\Exceptions\LocationNotFoundException;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
 use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
@@ -14,13 +14,13 @@ interface OpenMeteoRepositoryInterface
     /**
      * Resolves a city name to coordinates using the Open-Meteo Geocoding API.
      *
-     * Open-Meteo matches names by prefix, so up to 10 results are requested and only
-     * one whose name is identical to the requested city is accepted (case-insensitive,
-     * accent-sensitive). When several places share the same name, the first one returned
-     * by Open-Meteo is used. Colloquial or abbreviated names and localities not indexed
-     * by Open-Meteo (e.g. many hamlets) are not resolved.
+     * Results are filtered by country and localized in Italian. Open-Meteo matches names by prefix,
+     * so up to 10 results are requested and only one whose name is identical to the requested city
+     * is accepted (case-insensitive, accent-sensitive). When several places share the same name,
+     * the first one returned by Open-Meteo is used. Colloquial or abbreviated names and localities
+     * not indexed by Open-Meteo (e.g. many hamlets) are not resolved.
      *
-     * @param string $city    City name, in Italian (results are localized with language=it).
+     * @param string $city    City name, in Italian.
      * @param string $country ISO 3166-1 alpha-2 country code used to filter results.
      *
      * @return Coordinates Coordinates of the matched location.
@@ -34,11 +34,17 @@ interface OpenMeteoRepositoryInterface
     ): Coordinates;
 
     /**
-     * Requests the daily forecast from Open-Meteo (cache miss).
+     * Fetches the daily forecast of a location from the Open-Meteo Forecast API.
+     *
+     * The whole forecast window (today included) is requested at once, in the location's own
+     * timezone, so the dates match the local date of the excursions. Values missing from the
+     * response are returned as null.
      *
      * @param Coordinates $coordinates Location to get the forecast for.
-     * @return array<string, Forecast> Forecasts indexed by date (Y-m-d).
-     * @throws OpenMeteoUnavailableException
+     *
+     * @return array<string, Forecast> Forecasts indexed by local date (Y-m-d), starting from today.
+     *
+     * @throws OpenMeteoUnavailableException When the request fails or the response has an unexpected shape.
      */
     public function fetchDailyForecast(Coordinates $coordinates): array;
 }

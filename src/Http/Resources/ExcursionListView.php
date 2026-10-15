@@ -2,9 +2,8 @@
 
 namespace App\Http\Resources;
 
-use App\Dto\Excursion\ExcursionForecast;
-use App\Dto\Excursion\Forecast;
-use App\Dto\Excursion\PaginatedResult;
+use App\Dto\ExcursionForecast;
+use App\Dto\PaginatedResult;
 use App\Entity\Excursion;
 
 readonly class ExcursionListView
@@ -18,7 +17,9 @@ readonly class ExcursionListView
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * Excursions of the current page, in the order returned by the search.
+     *
+     * @return list<array<string, mixed>> One item per excursion, shaped as described in {@see excursion()}.
      */
     public function getData(): array
     {
@@ -31,7 +32,9 @@ readonly class ExcursionListView
     }
 
     /**
-     * @return array<string, int>
+     * Pagination metadata. "total" is the number of matching excursions across all pages.
+     *
+     * @return array{page: int, per_page: int, total: int, total_pages: int}
      */
     public function getMeta(): array
     {
@@ -44,18 +47,11 @@ readonly class ExcursionListView
     }
 
     /**
-     * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
-     */
-    public function jsonSerialize(): array
-    {
-        return [
-            'data' => $this->getData(),
-            'meta' => $this->getMeta(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
+     * Maps an excursion and its forecast to a response item. Dates are formatted as YYYY-MM-DD.
+     *
+     * @param ExcursionForecast $item Excursion with its forecast.
+     *
+     * @return array
      */
     protected function excursion(ExcursionForecast $item): array
     {
@@ -75,12 +71,15 @@ readonly class ExcursionListView
     }
 
     /**
-     * Always present, with a stable shape:
-     * - available: data holds the daily forecast
-     * - not_yet_available: date beyond the 16-day window, available_from says when it will be
-     * - unavailable: weather provider unreachable
+     * Maps the forecast of an excursion. Always present, with the same keys whatever the status:
+     * - available: "data" holds the forecast of the excursion day;
+     * - not_yet_available: the date is beyond the forecast window, "available_from" is the first day
+     *   the forecast will exist;
+     * - unavailable: Open-Meteo was unreachable or returned an unexpected response.
      *
-     * @return array{status: string, available_from: string|null, data: array<string, int|float|null>|null}
+     * @param ExcursionForecast $item Excursion with its forecast.
+     *
+     * @return array
      */
     protected function forecast(ExcursionForecast $item): array
     {

@@ -23,6 +23,12 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         return [KernelEvents::EXCEPTION => ['onKernelException', -64]];
     }
 
+    /**
+     * Replaces the response with a problem details response when the exception is a domain exception
+     * with an HTTP status. Headers declared in #[WithHttpStatus] (e.g. Retry-After) are sent as well.
+     *
+     * @param ExceptionEvent $event Exception event of the current request.
+     */
     public function onKernelException(ExceptionEvent $event): void
     {
         $exception = $this->unwrap($event->getThrowable());
@@ -47,8 +53,14 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Symfony's ErrorListener wraps exceptions carrying #[WithHttpStatus]
-     * in an HttpException and keeps the original one as "previous".
+     * Returns the original exception when Symfony's ErrorListener has wrapped it.
+     *
+     * The ErrorListener wraps exceptions carrying #[WithHttpStatus] in an HttpException and keeps
+     * the original one as "previous".
+     *
+     * @param Throwable $exception Exception of the event, possibly wrapped.
+     *
+     * @return Throwable The original exception, or the given one if it is not wrapped.
      */
     protected function unwrap(Throwable $exception): Throwable
     {
@@ -59,6 +71,13 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         return $exception;
     }
 
+    /**
+     * Finds the #[WithHttpStatus] attribute on the exception class or on its closest parent declaring it.
+     *
+     * @param Throwable $exception Exception to inspect.
+     *
+     * @return WithHttpStatus|null The attribute, or null when no class in the hierarchy declares it.
+     */
     protected function findHttpStatus(Throwable $exception): ?WithHttpStatus
     {
         $class = new \ReflectionClass($exception);
