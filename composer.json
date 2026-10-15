@@ -10,6 +10,7 @@
         "doctrine/doctrine-bundle": "^3.3",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.7",
+        "lexik/jwt-authentication-bundle": "^3.2",
         "nelmio/api-doc-bundle": "^5.13",
         "phpdocumentor/reflection-docblock": "^6.0",
         "phpstan/phpdoc-parser": "^2.3",
@@ -24,6 +25,7 @@
         "symfony/property-access": "7.4.*",
         "symfony/property-info": "7.4.*",
         "symfony/runtime": "7.4.*",
+        "symfony/security-bundle": "7.4.*",
         "symfony/serializer": "7.4.*",
         "symfony/twig-bundle": "7.4.*",
         "symfony/validator": "7.4.*",
@@ -77,10 +79,15 @@
             "bin/console doctrine:database:create --env=test --if-not-exists",
             "bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration"
         ],
+        "user:setup": [
+            "bin/console lexik:jwt:generate-keypair --skip-if-exists",
+            "bin/console app:generate-users"
+        ],
         "trailcast-docker": [
             "@composer install --no-interaction --prefer-dist",
             "@db:setup",
-            "@db:setup-test"
+            "@db:setup-test",
+            "@user:setup"
         ],
         "test": [
             "@db:setup-test",

@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Contracts\Services\BookingServiceInterface;
 use App\Contracts\Services\ExcursionServiceInterface;
 use App\Entity\Excursion;
 use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
@@ -17,11 +16,10 @@ use OpenApi\Attributes as OA;
 use Psr\Cache\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/excursions')]
 #[OA\Tag(name: 'Excursions')]
@@ -60,6 +58,7 @@ class ExcursionController extends AbstractController
         response: 422,
         description: 'Unprocessable content.',
     )]
+    #[IsGranted('ROLE_STAFF')]
     public function create(#[MapRequestPayload] CreateExcursionRequest $request): ExcursionView
     {
         $this->logger->debug("Creating new excursion.");
