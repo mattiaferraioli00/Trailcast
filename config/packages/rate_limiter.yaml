@@ -1,0 +1,17 @@
+framework:
+    rate_limiter:
+        # Requests per client IP, across every route (see App\Listeners\RateLimitListener).
+        # State is stored in cache.rate_limiter (child of cache.app, so Valkey):
+        # the limit is shared by every application instance.
+        api:
+            policy: sliding_window
+            limit: 60
+            interval: '1 minute'
+
+when@test:
+    framework:
+        rate_limiter:
+            # Application tests send many requests from the same IP: never limit them.
+            # The limiter itself is covered by tests/Unit/Listeners/RateLimitListenerTest.php.
+            api:
+                policy: no_limit

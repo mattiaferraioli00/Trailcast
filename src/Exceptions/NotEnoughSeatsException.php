@@ -20,7 +20,7 @@ class NotEnoughSeatsException extends TException
     {
         parent::__construct($message, $code, $previous);
 
-        $this->addParam("excursionId", $excursion->getId());
+        $this->addParam("excursionId", $excursion?->getId());
         $this->addParam("seats", $seats);
     }
 }

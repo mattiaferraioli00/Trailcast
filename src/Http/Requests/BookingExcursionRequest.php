@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-use Nelmio\ApiDocBundle\Attribute\Ignore;
 use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
 use OpenApi\Attributes as OA;

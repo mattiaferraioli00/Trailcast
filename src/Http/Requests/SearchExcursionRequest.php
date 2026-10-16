@@ -23,7 +23,7 @@ class SearchExcursionRequest
     public ?DateTime $dateFrom = null;
 
     #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
-    #[Assert\GreaterThan(propertyPath: 'dateFrom')]
+    #[Assert\GreaterThanOrEqual(propertyPath: 'dateFrom')]
     public ?DateTime $dateTo = null;
 
     #[Assert\Positive]
