@@ -6,30 +6,41 @@ use DateTime;
 use Symfony\Component\Serializer\Attribute\Context;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Validator\Constraints as Assert;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(required: ['title', 'description', 'city', 'country', 'date', 'capacity'])]
 class CreateExcursionRequest
 {
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
+    #[OA\Property(example: 'Sunrise hike on Etna')]
     public string $title;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 500)]
+    #[OA\Property(example: 'Guided ascent with a stop at the Valle del Bove')]
     public string $description;
 
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
+    #[OA\Property(
+        description: 'City name, resolved to coordinates with the Open-Meteo geocoding API (exact match on the Italian name).',
+        example: 'Catania',
+    )]
     public string $city;
 
     #[Assert\NotBlank]
     #[Assert\Country]
+    #[OA\Property(description: 'ISO 3166-1 alpha-2 country code.', pattern: '^[A-Z]{2}$', example: 'IT')]
     public string $country;
 
     #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
     #[Assert\GreaterThan('today')]
+    #[OA\Property(description: 'Date of the excursion, after today.', type: 'string', format: 'date', example: '2026-11-20')]
     public DateTime $date;
 
     #[Assert\Positive]
+    #[OA\Property(description: 'Total number of seats.', example: 20, minimum: 1)]
     public int $capacity;
 
     public function __construct(

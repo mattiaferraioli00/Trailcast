@@ -2,20 +2,29 @@
 
 namespace App\Http\Requests;
 
+use Nelmio\ApiDocBundle\Attribute\Ignore;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(required: ['customer_name', 'customer_email', 'seats'])]
 class BookingExcursionRequest
 {
+    #[SerializedName('customer_name')]
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
-    public string $customer_name;
+    #[OA\Property(description: 'Name of the customer making the booking.', example: 'John Doe')]
+    public string $customerName;
 
+    #[SerializedName('customer_email')]
     #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     #[Assert\Email]
-    public string $customer_email;
+    #[OA\Property(description: 'Email of the customer.', format: 'email', example: 'john.doe@example.com')]
+    public string $customerEmail;
 
     #[Assert\GreaterThan(0)]
+    #[OA\Property(description: 'Number of seats to book.', example: 3, minimum: 1)]
     public int $seats;
 
     public function __construct(
@@ -24,8 +33,8 @@ class BookingExcursionRequest
         int $seats
     )
     {
-        $this->customer_name = $customer_name;
-        $this->customer_email = $customer_email;
+        $this->customerName = $customer_name;
+        $this->customerEmail = $customer_email;
         $this->seats = $seats;
     }
 
@@ -34,7 +43,7 @@ class BookingExcursionRequest
      */
     public function getCustomerName(): string
     {
-        return $this->customer_name;
+        return $this->customerName;
     }
 
     /**
@@ -42,7 +51,7 @@ class BookingExcursionRequest
      */
     public function getCustomerEmail(): string
     {
-        return $this->customer_email;
+        return $this->customerEmail;
     }
 
     /**
