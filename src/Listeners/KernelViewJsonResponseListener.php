@@ -33,14 +33,11 @@ readonly class KernelViewJsonResponseListener
     {
         $attributes = $event->controllerArgumentsEvent?->getAttributes(ResponseStatus::class) ?? [];
 
-        if (!is_null($attributes[0])) {
+        if (!empty($attributes)) {
             $status = $attributes[0]->code;
         }
 
-        $json = $this->serializer->serialize(
-            $event -> getControllerResult (),
-            'json' ,
-        );
+        $json = $this->serializer->serialize($event->getControllerResult(), 'json');
 
         $event->setResponse(
             new JsonResponse(
