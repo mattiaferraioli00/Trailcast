@@ -20,16 +20,16 @@ On every start the app container:
 2. creates the `trailcast` and `trailcast_test` databases (if missing) and runs the migrations;
 3. generates the JWT key pair (if missing);
 4. creates the demo users (if missing).
-   The first start takes a few minutes because of `composer install`. The API is ready when the Symfony server reports it is listening on port 8080.
+
+The first start takes a few minutes because of `composer install`. The API is ready when the Symfony server reports it is listening on port 8080.
 
 | Service               | Address                         |
 |-----------------------|---------------------------------|
 | API                   | http://localhost:8080           |
 | API docs (Swagger UI) | http://localhost:8080/api/doc   |
 | MySQL                 | `localhost:3311`                |
-| Valkey                | `localhost:6379`                |
 
-If a port is already in use on your machine, change `DOCKER_DB_PORT` or `DOCKER_VALKEY_PORT` in `.env`.
+If port 3311 is already in use on your machine, set `DOCKER_DB_PORT` in `.env`.
 
 ### Running the tests
 
@@ -57,7 +57,7 @@ Only `POST /excursions` requires authentication, and only staff can use it. List
 Get a token:
 
 ```bash
-curl -s -X POST http://localhost:8080/api/login \
+curl -s -X POST http://localhost:8080/login \
   -H 'Content-Type: application/json' \
   -d '{"email": "staff@trailcast.test", "password": "staff123"}'
 ```
@@ -71,11 +71,14 @@ Then send it as `Authorization: Bearer <token>`.
 - No token or invalid token → `401`.
 - Authenticated user without `ROLE_STAFF` → `403`.
 - The role always comes from the authenticated user stored in the database, never from the request body or from a client-supplied header.
+
 ---
 
 ## Endpoints
 
 All examples send `Accept: application/json`, so that error responses are rendered as JSON.
+
+Every endpoint is rate limited per client IP: over the limit it responds `429` (see [Rate limiting](#rate-limiting)).
 
 ### Create an excursion (staff)
 
@@ -105,6 +108,7 @@ curl -s -X POST http://localhost:8080/excursions \
   "country": "IT",
   "date": "2026-11-20",
   "capacity": 20,
+  "seats_available": 20,
   "latitude": 37.49223,
   "longitude": 15.07041
 }
@@ -132,7 +136,7 @@ curl -s -X POST http://localhost:8080/excursions \
 
 `GET /excursions` → `200`
 
-An excursion is **bookable** when its date is in the future and it has at least one seat available. Past and sold-out excursions are never returned. Results are ordered by date, then id.
+An excursion is **bookable** when its date is today or later and it has at least one seat available. Past and sold-out excursions are never returned. Results are ordered by date, then id.
 
 | Query parameter | Description                                   | Default |
 |-----------------|-----------------------------------------------|---------|
@@ -222,10 +226,10 @@ curl -s -X POST http://localhost:8080/excursions/1/bookings \
 ```json
 {
   "id": 1,
-  "name": "John Doe",
-  "email": "john.doe@example.com",
-  "seats": 3,
-  "excursion_id": 1
+  "excursion_id": 1,
+  "customer_name": "John Doe",
+  "customer_email": "john.doe@example.com",
+  "seats": 3
 }
 ```
 
@@ -260,8 +264,8 @@ Example `409`:
 
 Domain errors (location not found, not enough seats, provider unavailable) are returned as `application/problem+json` with `title`, `status`, `detail` and an optional `params` object with the values involved.
 
-<!-- TODO: add an example of the 422 validation body and of the 404 for a missing excursion -->
- 
+Validation errors (`422`) and missing excursions (`404`) use Symfony's standard problem+json format; a `422` lists each invalid field under `violations`.
+
 ---
 
 ## Design decisions
@@ -276,7 +280,8 @@ A booking runs inside a database transaction:
 2. availability is checked on that fresh value;
 3. the counter is decremented and the booking is inserted;
 4. the transaction commits and releases the lock.
-   Concurrent bookings on the same excursion are therefore serialised, and each one sees the seats left by the previous ones: an excursion can never sell more seats than its capacity. Bookings on different excursions do not block each other.
+
+Concurrent bookings on the same excursion are therefore serialised, and each one sees the seats left by the previous ones: an excursion can never sell more seats than its capacity. Bookings on different excursions do not block each other.
 
 **Deployment assumptions:** a single MySQL primary with InnoDB. The lock lives in the database, so any number of application instances can run in parallel. The approach would not hold if writes could go to asynchronous replicas or to a multi-primary setup.
 
@@ -284,7 +289,8 @@ A booking runs inside a database transaction:
 
 - *Atomic conditional update* (`UPDATE excursion SET seats_available = seats_available - :n WHERE id = :id AND seats_available >= :n`, then check the affected rows): one round trip and no lock held while application code runs, but the business rule moves into SQL.
 - *Optimistic locking* (version column): no waiting, but under contention most requests fail and must be retried.
-  The pessimistic lock keeps the check and the update in one place, in the domain code, at the cost of short waits on a very popular excursion.
+
+The pessimistic lock keeps the check and the update in one place, in the domain code, at the cost of short waits on a very popular excursion.
 
 **Manual check.** Create an excursion with capacity 5 (here id `1`), then send 20 bookings of one seat in parallel:
 
@@ -296,7 +302,7 @@ seq 20 | xargs -P 20 -I{} curl -s -o /dev/null -w '%{http_code}\n' \
   | sort | uniq -c
 ```
 
-Expected output: 5 × `201` and 15 × `409`.
+Expected output: 5 × `201` and 15 × `409`. If you run it several times within a minute, some requests get `429` from the [rate limiter](#rate-limiting).
 
 ### Weather forecast
 
@@ -321,6 +327,7 @@ Exposed values: WMO weather code, maximum and minimum temperature, maximum preci
 - The cache key contains today's date and the coordinates rounded to 2 decimals (about 1 km, finer than the resolution of the weather models), so nearby excursions share one entry whatever their date.
 - Within a single list request, excursions in the same rounded location trigger one lookup only.
 - Failed calls are never cached, so the next request retries.
+
 ### Geocoding
 
 Cities are resolved through the Open-Meteo Geocoding API **once, when the excursion is created**. The coordinates are stored with the excursion, so the list never calls the geocoder.
@@ -330,6 +337,16 @@ Cities are resolved through the Open-Meteo Geocoding API **once, when the excurs
 - The comparison ignores case but not accents (`Forli` does not match `Forlì`), and names are compared in **Italian** (`Parigi`, not `Paris`).
 - **Homonyms:** when several places in the country share the same name, the first one returned by Open-Meteo is used. The request contract does not let the client disambiguate.
 - **No match:** the excursion is not created and the API responds `404`.
+
+### Rate limiting
+
+Every client IP can make 60 requests per minute, across all routes (sliding window, Symfony RateLimiter).
+
+- Over the limit the API responds `429 Too Many Requests` with a `Retry-After` header, in seconds.
+- The check runs in `RateLimitListener` on `kernel.request`, after the router and before the firewall, so `POST /login` is limited too and a rejected request never reaches the database.
+- The counter is stored in Valkey, so it is shared by every application instance.
+- Symfony internal routes (profiler, toolbar) are not limited, and the limiter is disabled in the test environment.
+
 ### Architecture
 
 ```
@@ -346,6 +363,7 @@ Controller ──► ExcursionService ──► Doctrine repositories (MySQL)
 - Responses are view objects (`src/Http/Resources`) serialised to JSON by a `kernel.view` listener.
 - Open-Meteo is accessed through `OpenMeteoClientInterface`, so tests can replace it.
 - Domain errors are exceptions annotated with `#[WithHttpStatus]` and rendered by `ApiExceptionSubscriber`.
+
 ### Tests
 
 Tests are split in three folders, by what they need to run. The test namespace mirrors the folders
@@ -403,6 +421,7 @@ How the tests are set up:
 - **Circuit breaker:** while Open-Meteo is down, every list request retries the call for each uncached location, waiting up to the timeout. A short-lived "provider down" flag in the cache would make these calls fail fast.
 - **Cache expiry at day change:** the cache key contains today's date, so all entries are refreshed at the same time after midnight.
 - **Lock wait timeout:** if the lock on an excursion cannot be acquired in time, the booking currently fails with `500`.
+- **Rate limiting behind a proxy:** the limit is keyed on the client IP. Behind a load balancer `framework.trusted_proxies` must be configured, otherwise every client shares the proxy's IP and its limit.
 - **Hamlets and colloquial names** (many *frazioni*, `Calolzio`) are not indexed by Open-Meteo and cannot be resolved. A fallback geocoder (e.g. Nominatim / OpenStreetMap) could cover them.
 - **Homonyms** are resolved with the first Open-Meteo result. Accepting a region qualifier (`Castro, Puglia`), which Open-Meteo already supports, would let clients choose.
 - **Search by area** (radius around a point) is not supported: search is by exact city and country.
