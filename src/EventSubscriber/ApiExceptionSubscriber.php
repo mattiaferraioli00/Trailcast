@@ -34,7 +34,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         $exception = $this->unwrap($event->getThrowable());
         $httpStatus = $this->findHttpStatus($exception);
 
-        if (!$exception instanceof TException ||is_null($httpStatus)) {
+        if (!$exception instanceof TException || is_null($httpStatus)) {
             return;
         }
 

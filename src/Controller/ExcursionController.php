@@ -123,7 +123,7 @@ class ExcursionController extends AbstractController
         description: 'Invalid query parameters.',
     )]
     public function search(
-        #[MapQueryString] SearchExcursionRequest $request = new SearchExcursionRequest()
+        #[MapQueryString(validationFailedStatusCode: Response::HTTP_UNPROCESSABLE_ENTITY)] SearchExcursionRequest $request = new SearchExcursionRequest()
     ): ExcursionListView
     {
         $this->logger->debug('Searching excursions.', array_filter([

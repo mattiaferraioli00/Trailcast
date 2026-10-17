@@ -16,12 +16,6 @@
         <server name="APP_ENV" value="test" force="true" />
         <server name="KERNEL_CLASS" value="App\Kernel" />
         <server name="SHELL_VERBOSITY" value="-1" />
-
-        <!-- ###+ lexik/jwt-authentication-bundle ### -->
-        <env name="JWT_SECRET_KEY" value="%kernel.project_dir%/config/jwt/private.pem"/>
-        <env name="JWT_PUBLIC_KEY" value="%kernel.project_dir%/config/jwt/public.pem"/>
-        <env name="JWT_PASSPHRASE" value="cecd54b02fbb6633c3f2b17a0323b8fec9f10e325d658e9fa6811a6282193420"/>
-        <!-- ###- lexik/jwt-authentication-bundle ### -->
     </php>
 
     <testsuites>
