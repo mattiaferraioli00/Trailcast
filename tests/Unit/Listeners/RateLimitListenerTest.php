@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\Listeners;
 
-use App\Listeners\RateLimitListener;
+use App\EventListener\RateLimitListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

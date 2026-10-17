@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Client;
+
+use App\Contracts\Client\OpenMeteoClientInterface;
+use App\Dto\Coordinates;
+use App\Dto\Forecast;
+use App\Exception\LocationNotFoundException;
+use App\Exception\OpenMeteo\GeocodingUnavailableException;
+use App\Exception\OpenMeteo\OpenMeteoUnavailableException;
+use App\Traits\LoggerTrait;
+use Exception;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+class OpenMeteoClient implements OpenMeteoClientInterface
+{
+    use LoggerTrait;
+
+    public const FORECAST_DAYS = 16;
+
+    public function __construct(
+        protected readonly HttpClientInterface $openMeteoGeocodingClient,
+        protected readonly HttpClientInterface $openMeteoForecastClient,
+    )
+    {
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function geocode(
+        string $city,
+        string $country,
+    ): Coordinates
+    {
+        try {
+            // It could be separated connector for this, but it's not necessary for now.
+            $data = $this->openMeteoGeocodingClient->request('GET', 'search', [
+                'query' => [
+                    'name' => $city,
+                    'countryCode' => $country,
+                    'count' => 10,
+                    'language' => 'it',
+                    'format' => 'json',
+                ],
+            ])->toArray();
+        } catch (Exception $e) {
+            $this->logger->error('Open-Meteo geocoding request failed.', [
+                'city' => $city,
+                'country' => $country,
+                'exception' => $e,
+            ]);
+
+            throw new GeocodingUnavailableException();
+        }
+
+        $results = $data['results'] ?? [];
+
+        foreach ($results as $result) {
+            if (mb_strtolower($result['name']) === mb_strtolower($city)) {
+                return new Coordinates(
+                    latitude: (float) $result['latitude'],
+                    longitude: (float) $result['longitude']
+                );
+            }
+        }
+
+        $this->logger->error('Open-Meteo geocoding no matching results.', [
+            'city' => $city,
+            'country' => $country,
+        ]);
+
+        throw new LocationNotFoundException(
+            message: "No location found for $city and $country", city: $city, country: $country);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function fetchDailyForecast(Coordinates $coordinates): array
+    {
+        $this->logger->debug('requesting Open-Meteo.', [
+            'latitude' => $coordinates->getLatitude(),
+            'longitude' => $coordinates->getLongitude(),
+        ]);
+
+        try {
+            $data = $this->openMeteoForecastClient->request('GET', 'forecast', [
+                'query' => [
+                    'latitude' => $coordinates->getLatitude(),
+                    'longitude' => $coordinates->getLongitude(),
+                    'daily' => 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+                    'forecast_days' => self::FORECAST_DAYS,
+                    'timezone' => 'auto',
+                ],
+            ])->toArray();
+        } catch (ExceptionInterface $e) {
+            $this->logger->error("OpenMeteo is not available: {$e->getMessage()}");
+
+            throw new OpenMeteoUnavailableException();
+        }
+
+        $daily = $data['daily'] ?? null;
+
+        if (!is_array($daily) || !is_array($daily['time'] ?? null)) {
+            throw new OpenMeteoUnavailableException();
+        }
+
+        $forecasts = [];
+        foreach ($daily['time'] as $index => $date) {
+            $forecasts[$date] = new Forecast(
+                weatherCode: $daily['weather_code'][$index] ?? null,
+                temperatureMax: $daily['temperature_2m_max'][$index] ?? null,
+                temperatureMin: $daily['temperature_2m_min'][$index] ?? null,
+                precipitationProbability: $daily['precipitation_probability_max'][$index] ?? null,
+            );
+        }
+
+        return $forecasts;
+    }
+
+}

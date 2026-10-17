@@ -59,17 +59,11 @@ class CreateExcursionRequest
         $this->capacity = $capacity;
     }
 
-    /**
-     * @return string Title of the excursion (not blank, max 255 characters).
-     */
     public function getTitle(): string
     {
         return $this->title;
     }
 
-    /**
-     * @return string Description of the excursion (not blank, max 500 characters).
-     */
     public function getDescription(): string
     {
         return $this->description;

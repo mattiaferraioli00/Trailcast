@@ -9,9 +9,6 @@ readonly class ExcursionItemView extends ExcursionView
 {
     public ForecastView $forecast;
 
-    /**
-     * @param ExcursionForecast $item Excursion with the forecast of its day.
-     */
     public function __construct(ExcursionForecast $item)
     {
         parent::__construct($item->getExcursion());

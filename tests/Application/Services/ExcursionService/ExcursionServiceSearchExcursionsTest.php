@@ -3,14 +3,13 @@
 namespace App\Tests\Application\Services\ExcursionService;
 
 use App\Tests\Application\ApplicationTestCase;
-use App\Constants\ForecastStatus;
-use App\Contracts\Services\ExcursionServiceInterface;
+use App\Enum\ForecastStatus;
+use App\Contracts\Service\ExcursionServiceInterface;
 use App\Dto\ExcursionForecast;
-use App\Dto\Forecast;
-use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
+use App\Exception\OpenMeteo\OpenMeteoUnavailableException;
 use App\Http\Requests\SearchExcursionRequest;
-use App\Services\ExcursionService;
-use App\Tests\Support\FakeOpenMeteoRepository;
+use App\Service\ExcursionService;
+use App\Tests\Support\FakeOpenMeteoClient;
 use DateTime;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -102,7 +101,7 @@ class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
     public function attaches_the_forecast_of_the_excursion_day(): void
     {
         $date = new DateTime('+3 days');
-        $series = FakeOpenMeteoRepository::dailySeries();
+        $series = FakeOpenMeteoClient::dailySeries();
         $this->openMeteo->willFetchForecast($series);
         $this->createExcursion(['date' => $date]);
 
@@ -142,7 +141,7 @@ class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
     #[Test]
     public function marks_the_forecast_as_unavailable_when_the_day_is_missing_from_the_series(): void
     {
-        $series = FakeOpenMeteoRepository::dailySeries();
+        $series = FakeOpenMeteoClient::dailySeries();
         unset($series[(new DateTime('+3 days'))->format('Y-m-d')]);
         $this->openMeteo->willFetchForecast($series);
         $this->createExcursion(['date' => new DateTime('+3 days')]);
@@ -209,7 +208,7 @@ class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
     #[Test]
     public function does_not_cache_open_meteo_failures(): void
     {
-        $this->openMeteo->willFetchForecast(new OpenMeteoUnavailableException(), FakeOpenMeteoRepository::dailySeries());
+        $this->openMeteo->willFetchForecast(new OpenMeteoUnavailableException(), FakeOpenMeteoClient::dailySeries());
         $this->createExcursion(['date' => new DateTime('+3 days')]);
 
         $first = $this->searchOne();

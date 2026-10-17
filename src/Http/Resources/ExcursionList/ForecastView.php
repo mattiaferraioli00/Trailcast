@@ -2,7 +2,7 @@
 
 namespace App\Http\Resources\ExcursionList;
 
-use App\Constants\ForecastStatus;
+use App\Enum\ForecastStatus;
 use App\Dto\ExcursionForecast;
 use OpenApi\Attributes as OA;
 
@@ -21,20 +21,17 @@ readonly class ForecastView
         format: 'date',
         example: '2026-07-28',
     )]
-    public ?string $available_from;
+    public ?string $availableFrom;
 
     #[OA\Property(description: 'Forecast of the excursion day. Set only when status is available.')]
     public ?WeatherView $data;
 
-    /**
-     * @param ExcursionForecast $item Excursion with the forecast of its day and the forecast status.
-     */
     public function __construct(ExcursionForecast $item)
     {
         $forecast = $item->getForecast();
 
         $this->status = $item->getStatus();
-        $this->available_from = $item->getAvailableFrom()?->format('Y-m-d');
+        $this->availableFrom = $item->getAvailableFrom()?->format('Y-m-d');
         $this->data = is_null($forecast) ? null : new WeatherView($forecast);
     }
 }

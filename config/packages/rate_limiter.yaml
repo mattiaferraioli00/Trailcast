@@ -1,6 +1,6 @@
 framework:
     rate_limiter:
-        # Requests per client IP, across every route (see App\Listeners\RateLimitListener).
+        # Requests per client IP, across every route (see App\EventListener\RateLimitListener).
         # State is stored in cache.rate_limiter (child of cache.app, so Valkey):
         # the limit is shared by every application instance.
         api:

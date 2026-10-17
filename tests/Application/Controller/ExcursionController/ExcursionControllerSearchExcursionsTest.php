@@ -4,9 +4,7 @@ namespace App\Tests\Application\Controller\ExcursionController;
 
 use App\Tests\Application\ApplicationTestCase;
 use App\Controller\ExcursionController;
-use App\Dto\Forecast;
-use App\Exceptions\OpenMeteo\OpenMeteoUnavailableException;
-use App\Tests\Support\FakeOpenMeteoRepository;
+use App\Exception\OpenMeteo\OpenMeteoUnavailableException;
 use DateTime;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -129,7 +127,7 @@ class ExcursionControllerSearchExcursionsTest extends ApplicationTestCase
 
         $from = (new DateTime('+4 days'))->format('Y-m-d');
         $to = (new DateTime('+6 days'))->format('Y-m-d');
-        $this->callApi('GET', "/excursions?dateFrom=$from&dateTo=$to");
+        $this->callApi('GET', "/excursions?date_from=$from&date_to=$to");
 
         $this->assertResponseStatusCodeSame(200);
         $this->assertSame([$inside->getId()], array_column($this->responseBody()['data'], 'id'));
@@ -164,7 +162,7 @@ class ExcursionControllerSearchExcursionsTest extends ApplicationTestCase
         $this->createExcursion(['date' => new DateTime('+2 days')]);
         $last = $this->createExcursion(['date' => new DateTime('+3 days')]);
 
-        $this->callApi('GET', '/excursions?page=2&perPage=2');
+        $this->callApi('GET', '/excursions?page=2&per_page=2');
 
         $this->assertResponseStatusCodeSame(200);
 
@@ -246,15 +244,15 @@ class ExcursionControllerSearchExcursionsTest extends ApplicationTestCase
     public static function invalid_queries(): iterable
     {
         yield 'page zero' => ['page=0'];
-        yield 'per page zero' => ['perPage=0'];
-        yield 'per page over the maximum' => ['perPage=51'];
+        yield 'per page zero' => ['per_page=0'];
+        yield 'per page over the maximum' => ['per_page=51'];
         yield 'unknown country' => ['country=XX'];
         yield 'zero seats' => ['seats=0'];
         yield 'city too long' => ['city=' . str_repeat('a', 256)];
-        yield 'date from in the past' => ['dateFrom=2020-01-01'];
-        yield 'malformed date from' => ['dateFrom=not-a-date'];
+        yield 'date from in the past' => ['date_from=2020-01-01'];
+        yield 'malformed date from' => ['date_from=not-a-date'];
         yield 'date to before date from' => [
-            'dateFrom=' . (new DateTime('+5 days'))->format('Y-m-d') . '&dateTo=' . (new DateTime('+3 days'))->format('Y-m-d'),
+            'date_from=' . (new DateTime('+5 days'))->format('Y-m-d') . '&date_to=' . (new DateTime('+3 days'))->format('Y-m-d'),
         ];
     }
 }

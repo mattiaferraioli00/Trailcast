@@ -2,12 +2,12 @@
 
 namespace App\Controller;
 
-use App\Attributes\ResponseStatus;
-use App\Contracts\Services\ExcursionServiceInterface;
+use App\Attribute\ResponseStatus;
+use App\Contracts\Service\ExcursionServiceInterface;
 use App\Entity\Excursion;
-use App\Exceptions\LocationNotFoundException;
-use App\Exceptions\NotEnoughSeatsException;
-use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
+use App\Exception\LocationNotFoundException;
+use App\Exception\NotEnoughSeatsException;
+use App\Exception\OpenMeteo\GeocodingUnavailableException;
 use App\Http\Requests\BookingExcursionRequest;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
