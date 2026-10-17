@@ -15,13 +15,13 @@ readonly class WeatherView
         . '(e.g. 0 clear sky, 61 slight rain, 95 thunderstorm).',
         example: 61,
     )]
-    public ?int $weather_code;
+    public ?int $weatherCode;
 
     #[OA\Property(description: 'Maximum air temperature of the day at 2 m above ground, in °C.', example: 16.4)]
-    public ?float $temperature_max_celsius;
+    public ?float $temperatureMaxCelsius;
 
     #[OA\Property(description: 'Minimum air temperature of the day at 2 m above ground, in °C.', example: 9.8)]
-    public ?float $temperature_min_celsius;
+    public ?float $temperatureMinCelsius;
 
     #[OA\Property(
         description: 'Highest hourly probability of precipitation during the day, in percent.',
@@ -29,16 +29,13 @@ readonly class WeatherView
         maximum: 100,
         minimum: 0,
     )]
-    public ?int $precipitation_probability_percent;
+    public ?int $precipitationProbabilityPercent;
 
-    /**
-     * @param Forecast $forecast Forecast of the excursion day.
-     */
     public function __construct(Forecast $forecast)
     {
-        $this->weather_code = $forecast->getWeatherCode();
-        $this->temperature_max_celsius = $forecast->getTemperatureMax();
-        $this->temperature_min_celsius = $forecast->getTemperatureMin();
-        $this->precipitation_probability_percent = $forecast->getPrecipitationProbability();
+        $this->weatherCode = $forecast->getWeatherCode();
+        $this->temperatureMaxCelsius = $forecast->getTemperatureMax();
+        $this->temperatureMinCelsius = $forecast->getTemperatureMin();
+        $this->precipitationProbabilityPercent = $forecast->getPrecipitationProbability();
     }
 }

@@ -5,8 +5,8 @@ namespace App\Tests\Application;
 use App\Entity\Bookings;
 use App\Entity\Excursion;
 use App\Entity\User;
-use App\ExternalRepositories\OpenMeteoRepository;
-use App\Tests\Support\FakeOpenMeteoRepository;
+use App\Client\OpenMeteoClient;
+use App\Tests\Support\FakeOpenMeteoClient;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use JsonException;
@@ -25,7 +25,7 @@ abstract class ApplicationTestCase extends WebTestCase
 {
     protected KernelBrowser $client;
 
-    protected FakeOpenMeteoRepository $openMeteo;
+    protected FakeOpenMeteoClient $openMeteo;
 
     protected EntityManagerInterface $entityManager;
 
@@ -36,8 +36,8 @@ abstract class ApplicationTestCase extends WebTestCase
     {
         $container = static::getContainer();
 
-        $this->openMeteo = new FakeOpenMeteoRepository();
-        $container->set(OpenMeteoRepository::class, $this->openMeteo);
+        $this->openMeteo = new FakeOpenMeteoClient();
+        $container->set(OpenMeteoClient::class, $this->openMeteo);
 
         $this->entityManager = $container->get(EntityManagerInterface::class);
     }

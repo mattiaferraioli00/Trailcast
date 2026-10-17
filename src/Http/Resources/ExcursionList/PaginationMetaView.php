@@ -11,22 +11,19 @@ readonly class PaginationMetaView
     public int $page;
 
     #[OA\Property(description: 'Maximum number of items per page.', example: 20)]
-    public int $per_page;
+    public int $perPage;
 
     #[OA\Property(description: 'Number of matching excursions across all pages.', example: 42)]
     public int $total;
 
     #[OA\Property(description: 'Number of pages; 1 when there are no results.', example: 3)]
-    public int $total_pages;
+    public int $totalPages;
 
-    /**
-     * @param PaginatedResult $result Page of results the metadata refers to.
-     */
     public function __construct(PaginatedResult $result)
     {
         $this->page = $result->getPage();
-        $this->per_page = $result->getPerPage();
+        $this->perPage = $result->getPerPage();
         $this->total = $result->getTotal();
-        $this->total_pages = $result->getTotalPages();
+        $this->totalPages = $result->getTotalPages();
     }
 }

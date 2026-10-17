@@ -2,8 +2,8 @@
 
 namespace App\Tests\Unit\Listeners;
 
-use App\Attributes\ResponseStatus;
-use App\Listeners\KernelViewJsonResponseListener;
+use App\Attribute\ResponseStatus;
+use App\EventListener\KernelViewJsonResponseListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

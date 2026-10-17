@@ -29,7 +29,7 @@ readonly class ExcursionView
     public int $capacity;
 
     #[OA\Property(description: 'Seats still available.', example: 7)]
-    public int $seats_available;
+    public int $seatsAvailable;
 
     #[OA\Property(description: 'Latitude resolved from the city by geocoding.', example: 37.49223)]
     public float $latitude;
@@ -46,7 +46,7 @@ readonly class ExcursionView
         $this->country = $excursion->getCountry();
         $this->date = $excursion->getDate()->format('Y-m-d');
         $this->capacity = $excursion->getCapacity();
-        $this->seats_available = $excursion->getSeatsAvailable();
+        $this->seatsAvailable = $excursion->getSeatsAvailable();
         $this->latitude = $excursion->getLatitude();
         $this->longitude = $excursion->getLongitude();
     }

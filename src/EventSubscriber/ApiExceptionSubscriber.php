@@ -2,7 +2,7 @@
 
 namespace App\EventSubscriber;
 
-use App\Exceptions\TException;
+use App\Exception\ApiException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,7 +34,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         $exception = $this->unwrap($event->getThrowable());
         $httpStatus = $this->findHttpStatus($exception);
 
-        if (!$exception instanceof TException || is_null($httpStatus)) {
+        if (!$exception instanceof ApiException || is_null($httpStatus)) {
             return;
         }
 

@@ -3,12 +3,12 @@
 namespace App\Tests\Application\Services\ExcursionService;
 
 use App\Tests\Application\ApplicationTestCase;
-use App\Contracts\Services\ExcursionServiceInterface;
+use App\Contracts\Service\ExcursionServiceInterface;
 use App\Entity\Bookings;
 use App\Entity\Excursion;
-use App\Exceptions\NotEnoughSeatsException;
+use App\Exception\NotEnoughSeatsException;
 use App\Http\Requests\BookingExcursionRequest;
-use App\Services\ExcursionService;
+use App\Service\ExcursionService;
 use DateTime;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
@@ -101,7 +101,7 @@ class ExcursionServiceBookExcursionTest extends ApplicationTestCase
             $this->service->bookExcursion($excursion, $this->request(3));
             $this->fail('The booking over the available seats was not rejected.');
         } catch (NotEnoughSeatsException $e) {
-            $this->assertSame(['excursionId' => $excursion->getId(), 'seats' => 3], $e->getParams());
+            $this->assertSame(['excursion_id' => $excursion->getId(), 'seats' => 3], $e->getParams());
         }
 
         $this->assertSame(2, $excursion->getSeatsAvailable());

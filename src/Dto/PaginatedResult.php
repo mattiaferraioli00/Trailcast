@@ -45,9 +45,6 @@ readonly class PaginatedResult
         return $this->page;
     }
 
-    /**
-     * @return int Maximum number of items per page.
-     */
     public function getPerPage(): int
     {
         return $this->perPage;

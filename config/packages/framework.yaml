@@ -5,6 +5,10 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session: true
 
+    # PHP properties are camelCase, the JSON of the API (bodies and query strings) is snake_case.
+    serializer:
+        name_converter: 'serializer.name_converter.camel_case_to_snake_case'
+
     #esi: true
     #fragments: true
 

@@ -138,14 +138,14 @@ An excursion is **bookable** when its date is in the future and it has at least 
 |-----------------|-----------------------------------------------|---------|
 | `city`          | Exact city name                               |         |
 | `country`       | ISO 3166-1 alpha-2 code                       |         |
-| `dateFrom`      | Excursions on or after this date (`YYYY-MM-DD`)  |         |
-| `dateTo`        | Excursions on or before this date (`YYYY-MM-DD`) |         |
+| `date_from`     | Excursions on or after this date (`YYYY-MM-DD`)  |         |
+| `date_to`       | Excursions on or before this date (`YYYY-MM-DD`) |         |
 | `seats`         | Minimum number of available seats             |         |
 | `page`          | Page number                                   | `1`     |
-| `perPage`       | Items per page (max 50)                       | `20`    |
+| `per_page`      | Items per page (max 50)                       | `20`    |
 
 ```bash
-curl -s 'http://localhost:8080/excursions?country=IT&seats=2&perPage=10' \
+curl -s 'http://localhost:8080/excursions?country=IT&seats=2&per_page=10' \
   -H 'Accept: application/json'
 ```
 
@@ -250,7 +250,7 @@ Example `409`:
   "status": 409,
   "detail": "Not enough seats available for excursion with ID 1",
   "params": {
-    "excursionId": 1,
+    "excursion_id": 1,
     "seats": 30
   }
 }
@@ -335,14 +335,16 @@ Cities are resolved through the Open-Meteo Geocoding API **once, when the excurs
 ```
 Controller ──► ExcursionService ──► Doctrine repositories (MySQL)
                      │
-                     ├──► CachedForecastService ──► OpenMeteoRepository ──► Open-Meteo Forecast API
+                     ├──► CachedForecastService ──► OpenMeteoClient ──► Open-Meteo Forecast API
                      │          (Valkey)
-                     └──► OpenMeteoRepository ──► Open-Meteo Geocoding API
+                     └──► OpenMeteoClient ──► Open-Meteo Geocoding API
 ```
 
+- PHP is camelCase, the JSON of the API (bodies, query strings, `params` of the errors) is snake_case: the
+  serializer name converter `camel_case_to_snake_case` (`config/packages/framework.yaml`) does the translation.
 - Request bodies and query strings are mapped to DTOs and validated with `#[MapRequestPayload]` and `#[MapQueryString]` (`src/Http/Requests`).
 - Responses are view objects (`src/Http/Resources`) serialised to JSON by a `kernel.view` listener.
-- Open-Meteo is accessed through `OpenMeteoRepositoryInterface`, so tests can replace it.
+- Open-Meteo is accessed through `OpenMeteoClientInterface`, so tests can replace it.
 - Domain errors are exceptions annotated with `#[WithHttpStatus]` and rendered by `ApiExceptionSubscriber`.
 ### Tests
 
@@ -359,16 +361,16 @@ Tests are split in three folders, by what they need to run. The test namespace m
 ```
 tests/
 ├── Unit/Listeners/                      RateLimitListenerTest, KernelViewJsonResponseListenerTest
-├── Integration/ExternalRepositories/OpenMeteoRepository/
-│   ├── OpenMeteoRepositoryGeocodeTest
-│   └── OpenMeteoRepositoryFetchDailyForecastTest
+├── Integration/Client/OpenMeteoClient/
+│   ├── OpenMeteoClientGeocodeTest
+│   └── OpenMeteoClientFetchDailyForecastTest
 ├── Application/
 │   ├── ApplicationTestCase              base class: fake Open-Meteo, test data and HTTP helpers (not a test)
 │   ├── Controller/ExcursionController/  ExcursionController{CreateExcursion,BookExcursion,SearchExcursions}Test
 │   ├── Services/ExcursionService/       ExcursionService{CreateExcursion,BookExcursion,SearchExcursions}Test
 │   ├── Repository/ExcursionRepository/  ExcursionRepositoryFindBookableTest
 │   └── Security/LoginTest
-├── Support/                             FakeOpenMeteoRepository (not a test)
+├── Support/                             FakeOpenMeteoClient (not a test)
 └── Fixtures/                            JSON files used by the tests
 ```
 
@@ -386,7 +388,7 @@ What each folder checks:
 
 How the tests are set up:
 
-- Open-Meteo is replaced in the Application tests by `tests/Support/FakeOpenMeteoRepository`, which never touches
+- Open-Meteo is replaced in the Application tests by `tests/Support/FakeOpenMeteoClient`, which never touches
   the network and records its calls.
 - Every Application test extends `ApplicationTestCase`, which holds the shared helpers (`createExcursion()`,
   `createUser()`, `callApi()`, …).

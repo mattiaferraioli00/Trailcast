@@ -3,13 +3,13 @@
 namespace App\Tests\Application\Services\ExcursionService;
 
 use App\Tests\Application\ApplicationTestCase;
-use App\Contracts\Services\ExcursionServiceInterface;
+use App\Contracts\Service\ExcursionServiceInterface;
 use App\Dto\Coordinates;
 use App\Entity\Excursion;
-use App\Exceptions\LocationNotFoundException;
-use App\Exceptions\OpenMeteo\GeocodingUnavailableException;
+use App\Exception\LocationNotFoundException;
+use App\Exception\OpenMeteo\GeocodingUnavailableException;
 use App\Http\Requests\CreateExcursionRequest;
-use App\Services\ExcursionService;
+use App\Service\ExcursionService;
 use DateTime;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\DataProvider;

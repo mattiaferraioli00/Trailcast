@@ -2,7 +2,7 @@
 
 namespace App\Dto;
 
-use App\Constants\ForecastStatus;
+use App\Enum\ForecastStatus;
 use App\Entity\Excursion;
 use DateTimeImmutable;
 
@@ -57,17 +57,11 @@ readonly class ExcursionForecast
         return new self($excursion, ForecastStatus::Unavailable, null, null);
     }
 
-    /**
-     * @return Excursion Excursion the forecast refers to.
-     */
     public function getExcursion(): Excursion
     {
         return $this->excursion;
     }
 
-    /**
-     * @return ForecastStatus Whether the forecast is available, not available yet or unavailable.
-     */
     public function getStatus(): ForecastStatus
     {
         return $this->status;
