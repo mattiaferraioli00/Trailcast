@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Tests\Unit\Listeners;
 
 use App\Listeners\RateLimitListener;
@@ -21,6 +20,9 @@ class RateLimitListenerTest extends TestCase
 
     protected RateLimitListener $listener;
 
+    /**
+     * Builds the listener with an in-memory fixed window limiter allowing LIMIT requests per minute.
+     */
     protected function setUp(): void
     {
         $factory = new RateLimiterFactory(
@@ -51,6 +53,11 @@ class RateLimitListenerTest extends TestCase
         }
     }
 
+    /**
+     * Builds the kernel.request event for a main request to /excursions.
+     *
+     * @return RequestEvent The event to hand to the listener.
+     */
     protected function requestEvent(): RequestEvent
     {
         return new RequestEvent(

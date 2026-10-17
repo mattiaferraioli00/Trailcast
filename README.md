@@ -37,7 +37,7 @@ If a port is already in use on your machine, change `DOCKER_DB_PORT` or `DOCKER_
 docker compose exec trailcast_app composer test
 ```
 
-The command runs the migrations on the test database, then PHPUnit. Each test runs inside a transaction that is rolled back at the end (DAMA DoctrineTestBundle), and calls to Open-Meteo are mocked, so the suite does not need network access.
+The command runs the migrations on the test database, then PHPUnit. Each test runs inside a transaction that is rolled back at the end (DAMA DoctrineTestBundle). The Integration tests call the real Open-Meteo, so the suite needs network access (see [Tests](#tests)).
 
 ### Demo credentials
 
@@ -316,7 +316,7 @@ Exposed values: WMO weather code, maximum and minimum temperature, maximum preci
 
 ### Caching and Open-Meteo integration
 
-- The HTTP clients towards Open-Meteo have a 2-second inactivity timeout and a 5-second maximum duration, so a slow provider cannot stall the list.
+- The HTTP clients towards Open-Meteo have an inactivity timeout and a maximum duration (2 and 5 seconds for geocoding, 4 and 7 for the forecast, whose 16-day response is slower), so a slow provider cannot stall the list.
 - The whole 16-day series of a location is fetched with a single request and cached in Valkey for 1 hour.
 - The cache key contains today's date and the coordinates rounded to 2 decimals (about 1 km, finer than the resolution of the weather models), so nearby excursions share one entry whatever their date.
 - Within a single list request, excursions in the same rounded location trigger one lookup only.
@@ -346,13 +346,58 @@ Controller ──► ExcursionService ──► Doctrine repositories (MySQL)
 - Domain errors are exceptions annotated with `#[WithHttpStatus]` and rendered by `ApiExceptionSubscriber`.
 ### Tests
 
-<!-- TODO: list the tests and why they were chosen -->
- 
+Tests are split in three folders, by what they need to run. The test namespace mirrors the folders
+(`App\Tests\Application\Services\ExcursionService\…`) and each test class is named `<Class><Method>Test`
+(e.g. `ExcursionControllerCreateExcursionTest`).
+
+| Folder | What it contains | Database | Open-Meteo |
+|--------|------------------|----------|------------|
+| `tests/Unit` | One class at a time, plain `TestCase`, no kernel. | no | no |
+| `tests/Integration` | Only tests that call a real external service. | no | **real** |
+| `tests/Application` | Everything else, on the booted application. Controllers use `WebTestCase`; services and Doctrine repositories use `KernelTestCase`. | real test DB | **always fake** |
+
+```
+tests/
+├── Unit/Listeners/                      RateLimitListenerTest, KernelViewJsonResponseListenerTest
+├── Integration/ExternalRepositories/OpenMeteoRepository/
+│   ├── OpenMeteoRepositoryGeocodeTest
+│   └── OpenMeteoRepositoryFetchDailyForecastTest
+├── Application/
+│   ├── ApplicationTestCase              base class: fake Open-Meteo, test data and HTTP helpers (not a test)
+│   ├── Controller/ExcursionController/  ExcursionController{CreateExcursion,BookExcursion,SearchExcursions}Test
+│   ├── Services/ExcursionService/       ExcursionService{CreateExcursion,BookExcursion,SearchExcursions}Test
+│   ├── Repository/ExcursionRepository/  ExcursionRepositoryFindBookableTest
+│   └── Security/LoginTest
+├── Support/                             FakeOpenMeteoRepository (not a test)
+└── Fixtures/                            JSON files used by the tests
+```
+
+What each folder checks:
+
+- **Controller tests** check the HTTP contract: status code, body, headers and the error statuses
+  `401` / `403` / `404` / `409` / `422` / `503`.
+- **Service tests** check the business rules: seats can never be oversold, the forecast statuses
+  (`available`, `not_yet_available`, `unavailable`), and the forecast cache, i.e. one Open-Meteo call for two
+  searches of the same place and failures that are never cached.
+- **Repository and Security tests** check the bookable-excursions query (filters, ordering, pagination) and the
+  login / JWT flow.
+- **Integration tests** call the real Open-Meteo and assert on the **shape** of the data (coordinates in a valid
+  range, one forecast per day of the window, plausible values), never on the weather itself.
+
+How the tests are set up:
+
+- Open-Meteo is replaced in the Application tests by `tests/Support/FakeOpenMeteoRepository`, which never touches
+  the network and records its calls.
+- Every Application test extends `ApplicationTestCase`, which holds the shared helpers (`createExcursion()`,
+  `createUser()`, `callApi()`, …).
+- The test database has no users: each test creates the ones it needs (`ApplicationTestCase::createUser()`).
+- Run a single folder with `docker compose exec trailcast_app vendor/bin/phpunit tests/Application` (or
+  `tests/Unit`, `tests/Integration`). Run only the Application tests when offline.
+
 ---
 
 ## Known limitations and future work
 
-- **Retries and rate limiting** towards Open-Meteo are not implemented.
 - **Circuit breaker:** while Open-Meteo is down, every list request retries the call for each uncached location, waiting up to the timeout. A short-lived "provider down" flag in the cache would make these calls fail fast.
 - **Cache expiry at day change:** the cache key contains today's date, so all entries are refreshed at the same time after midnight.
 - **Lock wait timeout:** if the lock on an excursion cannot be acquired in time, the booking currently fails with `500`.
