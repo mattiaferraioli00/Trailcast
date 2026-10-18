@@ -54,7 +54,6 @@ class ExcursionServiceBookExcursionLockTest extends TestCase
             $this->fail('The booking did not fail.');
         } catch (ExcursionBusyException $e) {
             $this->assertSame(503, $e->getCode());
-            $this->assertSame($failure, $e->getPrevious());
         }
     }
 

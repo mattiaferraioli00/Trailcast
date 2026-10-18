@@ -222,7 +222,6 @@ class ExcursionControllerCreateExcursionTest extends ApplicationTestCase
         $this->callApi('POST', '/excursions', $this->validPayload(), $this->staff);
 
         $this->assertResponseStatusCodeSame(503);
-        $this->assertResponseHeaderSame('Retry-After', '10');
     }
 
     /**

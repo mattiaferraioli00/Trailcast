@@ -113,7 +113,7 @@ class ExcursionControllerBookExcursionTest extends ApplicationTestCase
 
         $body = $this->responseBody();
         $this->assertSame(409, $body['status']);
-        $this->assertSame('Conflict', $body['title']);
+        $this->assertSame('Errore nella richiesta', $body['title']);
         $this->assertSame($excursion->getId(), $body['params']['excursion_id']);
         $this->assertSame(3, $body['params']['seats']);
 

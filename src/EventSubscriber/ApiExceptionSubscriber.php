@@ -39,7 +39,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
         }
 
         $body = [
-            'title' => Response::$statusTexts[$httpStatus->statusCode] ?? 'Error',
+            'title' => 'Errore nella richiesta',
             'status' => $httpStatus->statusCode,
             'detail' => $exception->getMessage(),
             'params' => $exception->getParams(),

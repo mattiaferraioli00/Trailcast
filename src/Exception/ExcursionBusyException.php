@@ -3,8 +3,10 @@
 namespace App\Exception;
 
 use App\Entity\Excursion;
+use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
+#[WithHttpStatus(503)]
 class ExcursionBusyException extends ApiException
 {
     public function __construct(

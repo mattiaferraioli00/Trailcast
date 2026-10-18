@@ -6,6 +6,7 @@ use App\Exception\ApiException;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
+#[WithHttpStatus(503)]
 class OpenMeteoUnavailableException extends ApiException
 {
     public function __construct(
