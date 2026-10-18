@@ -6,9 +6,6 @@ use App\Exception\ApiException;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(503, [
-    'Retry-After' => 10,
-])]
 class OpenMeteoUnavailableException extends ApiException
 {
     public function __construct(

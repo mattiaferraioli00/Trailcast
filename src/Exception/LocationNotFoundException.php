@@ -5,7 +5,6 @@ namespace App\Exception;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(404)]
 class LocationNotFoundException extends ApiException
 {
     public function __construct(

@@ -2,14 +2,10 @@
 
 namespace App\Exception\OpenMeteo;
 
-
 use App\Exception\ApiException;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(503, [
-    'Retry-After' => 10,
-])]
 class GeocodingUnavailableException extends ApiException
 {
 

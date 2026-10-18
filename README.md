@@ -39,6 +39,21 @@ docker compose exec trailcast_app composer test
 
 The command runs the migrations on the test database, then PHPUnit. Each test runs inside a transaction that is rolled back at the end (DAMA DoctrineTestBundle). The Integration tests call the real Open-Meteo, so the suite needs network access (see [Tests](#tests)).
 
+### Running the tests from PhpStorm
+
+PhpStorm can run the tests inside the `trailcast_app` container, with the same PHP, extensions and test database as `composer test`. Start the stack first with `docker compose up`.
+
+1. **Interpreter:** *Settings → PHP → CLI Interpreter → … → + → From Docker, Vagrant, VM, WSL, Remote…*
+    - choose **Docker Compose**, configuration file `./docker-compose.yml`, service `trailcast_app`;
+    - in the interpreter settings set *Lifecycle* to **Connect to existing container (`docker-compose exec`)**, so the running container is reused.
+2. **Path mapping:** project root → `/var/www` (PhpStorm usually detects it from the volume in `docker-compose.yml`).
+3. **PHPUnit:** *Settings → PHP → Test Frameworks → + → PHPUnit by Remote Interpreter*, pick the interpreter above, then:
+    - *Use Composer autoloader*: `/var/www/vendor/autoload.php`;
+    - *Default configuration file*: `/var/www/phpunit.dist.xml`.
+4. **Run:** right-click the `tests` folder (or `tests/Unit`, `tests/Application`, `tests/Integration`) and choose *Run*, or use the green arrow next to a test class or method.
+
+The test database is created and migrated by the container at every start. After adding a migration, run `docker compose exec trailcast_app composer db:setup-test` once, because PhpStorm calls PHPUnit directly and skips that step.
+
 ### Demo credentials
 
 | Email                  | Password   | Role         |
@@ -326,7 +341,8 @@ Exposed values: WMO weather code, maximum and minimum temperature, maximum preci
 - The whole 16-day series of a location is fetched with a single request and cached in Valkey for 1 hour.
 - The cache key contains today's date and the coordinates rounded to 2 decimals (about 1 km, finer than the resolution of the weather models), so nearby excursions share one entry whatever their date.
 - Within a single list request, excursions in the same rounded location trigger one lookup only.
-- Failed calls are never cached, so the next request retries.
+- Failed calls are never cached as forecasts.
+- When a forecast call fails, Open-Meteo is marked as down for 30 seconds (a flag in Valkey): until it expires, uncached locations get an `unavailable` forecast at once instead of waiting for the timeout, and forecasts already cached are still served. When the flag expires, the next request calls Open-Meteo again.
 
 ### Geocoding
 
@@ -398,7 +414,8 @@ What each folder checks:
   `401` / `403` / `404` / `409` / `422` / `503`.
 - **Service tests** check the business rules: seats can never be oversold, the forecast statuses
   (`available`, `not_yet_available`, `unavailable`), and the forecast cache, i.e. one Open-Meteo call for two
-  searches of the same place and failures that are never cached.
+  searches of the same place, and the circuit breaker (no calls while Open-Meteo is marked as down, a new
+  call once the flag expires).
 - **Repository and Security tests** check the bookable-excursions query (filters, ordering, pagination) and the
   login / JWT flow.
 - **Integration tests** call the real Open-Meteo and assert on the **shape** of the data (coordinates in a valid
@@ -418,7 +435,6 @@ How the tests are set up:
 
 ## Known limitations and future work
 
-- **Circuit breaker:** while Open-Meteo is down, every list request retries the call for each uncached location, waiting up to the timeout. A short-lived "provider down" flag in the cache would make these calls fail fast.
 - **Cache expiry at day change:** the cache key contains today's date, so all entries are refreshed at the same time after midnight.
 - **Lock wait timeout:** if the lock on an excursion cannot be acquired in time, the booking currently fails with `500`.
 - **Rate limiting behind a proxy:** the limit is keyed on the client IP. Behind a load balancer `framework.trusted_proxies` must be configured, otherwise every client shares the proxy's IP and its limit.

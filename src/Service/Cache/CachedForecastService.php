@@ -5,7 +5,9 @@ namespace App\Service\Cache;
 use App\Contracts\Client\OpenMeteoClientInterface;
 use App\Dto\Coordinates;
 use App\Dto\Forecast;
+use App\Exception\OpenMeteo\OpenMeteoUnavailableException;
 use App\Traits\LoggerTrait;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Cache\InvalidArgumentException;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -13,11 +15,26 @@ use Symfony\Contracts\Cache\ItemInterface;
 class CachedForecastService
 {
     use LoggerTrait;
+
+    /**
+     * Seconds the element lives in cache.
+     */
     protected const CACHE_TTL = 3600;
+
+    /**
+     * Cache key of the flag that marks Open-Meteo as down.
+     */
+    protected const PROVIDER_DOWN_KEY = 'forecast_provider_down';
+
+    /**
+     * Seconds the flag lives after a failure: until it expires, Open-Meteo is not called.
+     */
+    protected const PROVIDER_DOWN_TTL = 30;
 
     public function __construct(
         protected readonly OpenMeteoClientInterface $openMeteoClient,
         protected readonly CacheInterface $cache,
+        protected readonly CacheItemPoolInterface $cachePool
     ) {
     }
 
@@ -46,8 +63,48 @@ class CachedForecastService
 
             $this->logger->debug('Forecast cache miss.', ['cache_key' => $key]);
 
-            return $this->openMeteoClient->fetchDailyForecast($coordinates);
+            return $this->fetchUnlessProviderDown($coordinates);
         }, 0);
+    }
+
+    /**
+     * Calls Open-Meteo, unless a recent failure marked it as down (a minimal circuit breaker).
+     *
+     * After a failure a flag is cached for PROVIDER_DOWN_TTL seconds. While it exists, every cache miss
+     * fails at once instead of waiting for the HTTP timeout, both in the same request (the other
+     * locations of the page) and in the following ones. When the flag expires, the next miss calls
+     * Open-Meteo again: a success closes the circuit, a failure sets the flag for another window.
+     *
+     * The flag lives in cache.app (Valkey), so it is shared by every application instance. It is only
+     * read on a cache miss, so forecasts already cached keep being served while Open-Meteo is down.
+     *
+     * @param Coordinates $coordinates Location to get the forecast for.
+     *
+     * @return array<string, Forecast> Forecasts indexed by local date (Y-m-d), starting from today.
+     *
+     * @throws OpenMeteoUnavailableException When Open-Meteo is marked as down or the call fails.
+     * @throws InvalidArgumentException      When the flag key is invalid.
+     */
+    protected function fetchUnlessProviderDown(Coordinates $coordinates): array
+    {
+        if ($this->cachePool->hasItem(self::PROVIDER_DOWN_KEY)) {
+            throw new OpenMeteoUnavailableException('Open-Meteo is marked as down after a recent failure.');
+        }
+
+        try {
+            return $this->openMeteoClient->fetchDailyForecast($coordinates);
+        } catch (OpenMeteoUnavailableException $e) {
+            $flag = $this->cachePool
+                ->getItem(self::PROVIDER_DOWN_KEY)
+                ->set(true)
+                ->expiresAfter(self::PROVIDER_DOWN_TTL);
+
+            $this->cachePool->save($flag);
+
+            $this->logger->warning('Open-Meteo marked as down.', ['seconds' => self::PROVIDER_DOWN_TTL]);
+
+            throw $e;
+        }
     }
 
     /**

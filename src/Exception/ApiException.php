@@ -3,10 +3,8 @@
 namespace App\Exception;
 
 use Exception;
-
 class ApiException extends Exception
 {
-
     public array $params = [];
 
     public function addParam($key, $value): void

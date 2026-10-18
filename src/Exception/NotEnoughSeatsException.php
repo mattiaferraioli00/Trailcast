@@ -6,7 +6,6 @@ use App\Entity\Excursion;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Throwable;
 
-#[WithHttpStatus(409)]
 class NotEnoughSeatsException extends ApiException
 {
     public function __construct(

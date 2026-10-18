@@ -13,6 +13,7 @@ use App\Tests\Support\FakeOpenMeteoClient;
 use DateTime;
 use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\Attributes\Test;
+use Psr\Cache\InvalidArgumentException;
 
 #[CoversMethod(ExcursionService::class, 'searchExcursions')]
 class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
@@ -201,17 +202,18 @@ class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
     }
 
     /**
-     * Given an Open-Meteo that fails once and then recovers,
-     * when the search runs twice,
-     * then the failure is not cached: the second search calls Open-Meteo again and gets the forecast.
+     * Given an Open-Meteo that failed and has since recovered,
+     * when the "down" flag has expired and the search runs again,
+     * then Open-Meteo is called again and the forecast is available: failures are never cached as forecasts.
      */
     #[Test]
-    public function does_not_cache_open_meteo_failures(): void
+    public function calls_open_meteo_again_once_the_down_flag_expires(): void
     {
         $this->openMeteo->willFetchForecast(new OpenMeteoUnavailableException(), FakeOpenMeteoClient::dailySeries());
         $this->createExcursion(['date' => new DateTime('+3 days')]);
 
         $first = $this->searchOne();
+        static::getContainer()->get('cache.app')->clear();
         $second = $this->searchOne();
 
         $this->assertSame(ForecastStatus::Unavailable, $first->getStatus());
@@ -220,9 +222,30 @@ class ExcursionServiceSearchExcursionsTest extends ApplicationTestCase
     }
 
     /**
+     * Given an Open-Meteo that fails,
+     * when the same search runs again right after,
+     * then Open-Meteo is not called again: it is marked as down and the forecast is unavailable at once.
+     */
+    #[Test]
+    public function does_not_call_open_meteo_while_it_is_marked_as_down(): void
+    {
+        $this->openMeteo->willFetchForecast(new OpenMeteoUnavailableException(), FakeOpenMeteoClient::dailySeries());
+        $this->createExcursion(['date' => new DateTime('+3 days')]);
+
+        $first = $this->searchOne();
+        $second = $this->searchOne();
+
+        $this->assertSame(ForecastStatus::Unavailable, $first->getStatus());
+        $this->assertSame(ForecastStatus::Unavailable, $second->getStatus());
+        $this->assertCount(1, $this->openMeteo->forecastCalls);
+    }
+
+    /**
      * Runs the search without filters and returns its only item.
      *
      * @return ExcursionForecast The single excursion found, with its forecast.
+     *
+     * @throws InvalidArgumentException
      */
     protected function searchOne(): ExcursionForecast
     {
