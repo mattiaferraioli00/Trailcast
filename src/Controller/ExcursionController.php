@@ -15,7 +15,6 @@ use App\Http\Requests\SearchExcursionRequest;
 use App\Http\Resources\BookingView;
 use App\Http\Resources\ExcursionList\ExcursionListView;
 use App\Http\Resources\ExcursionView;
-use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Nelmio\ApiDocBundle\Attribute\Model;
 use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
@@ -159,8 +158,9 @@ class ExcursionController extends AbstractController
      *
      * @return BookingView The created booking.
      *
-     * @throws NotEnoughSeatsException|ExcursionBusyException When fewer seats are left than requested (409).
-     */
+     * @throws NotEnoughSeatsException When fewer seats are left than requested, or the excursion is in the past (409).
+     * @throws ExcursionBusyException  When the excursion stays locked by other bookings for more than 5 seconds (503).
+    */
     #[Route('/{id}/bookings', name: 'book-excursion', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[ResponseStatus(Response::HTTP_CREATED)]
     #[OA\Response(

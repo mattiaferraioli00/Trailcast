@@ -46,13 +46,14 @@ class CachedForecastService
      * Early expiration is disabled (beta = 0): an entry is recomputed only after it expires, so a
      * provider outage never discards a forecast that is still valid.
      *
-     * Failures are propagated and never cached, so the next call retries.
+     * Failures are never cached. After a failure Open-Meteo is marked as down for PROVIDER_DOWN_TTL
+     * seconds: until then, cache misses fail at once without calling it.
      *
      * @param Coordinates $coordinates Location to get the forecast for.
      *
      * @return array<string, Forecast> Forecasts indexed by local date (Y-m-d), starting from today.
      *
-     * @throws InvalidArgumentException When the cache key is invalid.
+     * @throws InvalidArgumentException      When the cache key is invalid.
      */
     public function getDailyForecast(Coordinates $coordinates): array
     {
