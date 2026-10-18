@@ -260,6 +260,7 @@ curl -s -X POST http://localhost:8080/excursions/1/bookings \
 | `404`  | Excursion does not exist                        |
 | `409`  | Not enough seats left for the requested amount  |
 | `422`  | Invalid payload                                 |
+| `503`  | The excursion is busy with other bookings; nothing was booked (`Retry-After: 1`) |
 
 Example `409`:
 
@@ -277,7 +278,7 @@ Example `409`:
 
 ### Error format
 
-Domain errors (location not found, not enough seats, provider unavailable) are returned as `application/problem+json` with `title`, `status`, `detail` and an optional `params` object with the values involved.
+Domain errors (location not found, not enough seats, excursion busy, provider unavailable) are returned as `application/problem+json` with `title`, `status`, `detail` and an optional `params` object with the values involved.
 
 Validation errors (`422`) and missing excursions (`404`) use Symfony's standard problem+json format; a `422` lists each invalid field under `violations`.
 
@@ -297,6 +298,21 @@ A booking runs inside a database transaction:
 4. the transaction commits and releases the lock.
 
 Concurrent bookings on the same excursion are therefore serialised, and each one sees the seats left by the previous ones: an excursion can never sell more seats than its capacity. Bookings on different excursions do not block each other.
+
+A booking waits at most 5 seconds for the lock (`innodb_lock_wait_timeout`, set for the booking's session). If the lock cannot be acquired in time, or MySQL detects a deadlock, the transaction is rolled back and the API responds `503` with `Retry-After: 1`: nothing was booked, so the client can retry.
+
+**Manual check of the lock timeout.** Hold the lock from a MySQL client:
+
+```bash
+docker compose exec trailcast_db mysql -u usertrailcast -ptrailcast trailcast
+```
+
+```sql
+BEGIN;
+SELECT * FROM excursion WHERE id = 1 FOR UPDATE;
+```
+
+Then book excursion `1` through the API: after 5 seconds it responds `503` with `Retry-After: 1`. End with `ROLLBACK;`.
 
 **Deployment assumptions:** a single MySQL primary with InnoDB. The lock lives in the database, so any number of application instances can run in parallel. The approach would not hold if writes could go to asynchronous replicas or to a multi-primary setup.
 
@@ -395,6 +411,7 @@ Tests are split in three folders, by what they need to run. The test namespace m
 ```
 tests/
 ├── Unit/Listeners/                      RateLimitListenerTest, KernelViewJsonResponseListenerTest
+├── Unit/Service/                        ExcursionServiceBookExcursionLockTest (lock timeout and deadlock → 503)
 ├── Integration/Client/OpenMeteoClient/
 │   ├── OpenMeteoClientGeocodeTest
 │   └── OpenMeteoClientFetchDailyForecastTest
@@ -436,7 +453,6 @@ How the tests are set up:
 ## Known limitations and future work
 
 - **Cache expiry at day change:** the cache key contains today's date, so all entries are refreshed at the same time after midnight.
-- **Lock wait timeout:** if the lock on an excursion cannot be acquired in time, the booking currently fails with `500`.
 - **Rate limiting behind a proxy:** the limit is keyed on the client IP. Behind a load balancer `framework.trusted_proxies` must be configured, otherwise every client shares the proxy's IP and its limit.
 - **Hamlets and colloquial names** (many *frazioni*, `Calolzio`) are not indexed by Open-Meteo and cannot be resolved. A fallback geocoder (e.g. Nominatim / OpenStreetMap) could cover them.
 - **Homonyms** are resolved with the first Open-Meteo result. Accepting a region qualifier (`Castro, Puglia`), which Open-Meteo already supports, would let clients choose.

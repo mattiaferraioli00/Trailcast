@@ -6,6 +6,7 @@ use App\Dto\ExcursionForecast;
 use App\Dto\PaginatedResult;
 use App\Entity\Bookings;
 use App\Entity\Excursion;
+use App\Exception\ExcursionBusyException;
 use App\Exception\LocationNotFoundException;
 use App\Exception\NotEnoughSeatsException;
 use App\Exception\OpenMeteo\GeocodingUnavailableException;
@@ -65,7 +66,8 @@ interface ExcursionServiceInterface
      * @return Bookings The persisted booking.
      *
      * @throws NotEnoughSeatsException   When the excursion is in the past or fewer seats are available than requested.
-     * @throws LockWaitTimeoutException  When the lock on the excursion cannot be acquired in time.
+     * @throws ExcursionBusyException    When the lock on the excursion cannot be acquired in time (lock wait
+     *                                   timeout or deadlock); the booking is rolled back.
      */
     public function bookExcursion(Excursion $excursion, BookingExcursionRequest $request): Bookings;
 }

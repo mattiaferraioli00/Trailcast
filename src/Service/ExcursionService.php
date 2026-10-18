@@ -10,6 +10,7 @@ use App\Dto\Forecast;
 use App\Dto\PaginatedResult;
 use App\Entity\Bookings;
 use App\Entity\Excursion;
+use App\Exception\ExcursionBusyException;
 use App\Exception\NotEnoughSeatsException;
 use App\Exception\OpenMeteo\OpenMeteoUnavailableException;
 use App\Client\OpenMeteoClient;
@@ -19,6 +20,7 @@ use App\Http\Requests\SearchExcursionRequest;
 use App\Service\Cache\CachedForecastService;
 use App\Traits\LoggerTrait;
 use DateTimeImmutable;
+use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -159,38 +161,52 @@ class ExcursionService implements ExcursionServiceInterface
      */
     public function bookExcursion(Excursion $excursion, BookingExcursionRequest $request): Bookings
     {
-        $booking = $this->entityManager->wrapInTransaction(function () use ($excursion, $request): Bookings {
-            $this->entityManager->refresh($excursion, LockMode::PESSIMISTIC_WRITE);
+        $this->entityManager->getConnection()->executeStatement(
+            sprintf('SET SESSION innodb_lock_wait_timeout = %d', 5)
+        );
 
-            if (!$excursion->isBookable($request->getSeats())) {
-                $this->logger->info('Booking rejected.', [
-                    'excursion_id' => $excursion->getId(),
-                    'excursion_date' => $excursion->getDate()->format('Y-m-d'),
-                    'requested_seats' => $request->getSeats(),
-                    'seats_available' => $excursion->getSeatsAvailable(),
-                ]);
+        try {
+            $booking = $this->entityManager->wrapInTransaction(function () use ($excursion, $request): Bookings {
+                $this->entityManager->refresh($excursion, LockMode::PESSIMISTIC_WRITE);
 
-                throw new NotEnoughSeatsException(
-                    message: "Not enough seats available for excursion with ID {$excursion->getId()}",
-                    excursion: $excursion,
-                    seats: $request->getSeats()
+                if (!$excursion->isBookable($request->getSeats())) {
+                    $this->logger->info('Booking rejected.', [
+                        'excursion_id' => $excursion->getId(),
+                        'excursion_date' => $excursion->getDate()->format('Y-m-d'),
+                        'requested_seats' => $request->getSeats(),
+                        'seats_available' => $excursion->getSeatsAvailable(),
+                    ]);
+
+                    throw new NotEnoughSeatsException(
+                        message: "Not enough seats available for excursion with ID {$excursion->getId()}",
+                        excursion: $excursion,
+                        seats: $request->getSeats()
+                    );
+                }
+
+                $excursion->reserveSeats($request->getSeats());
+
+                $booking = new Bookings(
+                    name: $request->getCustomerName(),
+                    email: $request->getCustomerEmail(),
+                    seats: $request->getSeats(),
+                    excursion: $excursion
                 );
-            }
 
-            $excursion->reserveSeats($request->getSeats());
+                $this->entityManager->persist($booking);
+                $this->entityManager->flush();
 
-            $booking = new Bookings(
-                name: $request->getCustomerName(),
-                email: $request->getCustomerEmail(),
-                seats: $request->getSeats(),
-                excursion: $excursion
-            );
+                return $booking;
+            });
+        } catch (RetryableException $e) {
+            $this->logger->warning('Booking rejected: excursion busy.', [
+                'excursion_id' => $excursion->getId(),
+                'requested_seats' => $request->getSeats(),
+                'exception' => $e->getMessage(),
+            ]);
 
-            $this->entityManager->persist($booking);
-            $this->entityManager->flush();
-
-            return $booking;
-        });
+            throw new ExcursionBusyException(excursion: $excursion);
+        }
 
         $this->logger->info('Booking created.', [
             'booking_id' => $booking->getId(),

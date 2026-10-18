@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Attribute\ResponseStatus;
 use App\Contracts\Service\ExcursionServiceInterface;
 use App\Entity\Excursion;
+use App\Exception\ExcursionBusyException;
 use App\Exception\LocationNotFoundException;
 use App\Exception\NotEnoughSeatsException;
 use App\Exception\OpenMeteo\GeocodingUnavailableException;
@@ -158,7 +159,7 @@ class ExcursionController extends AbstractController
      *
      * @return BookingView The created booking.
      *
-     * @throws NotEnoughSeatsException|LockWaitTimeoutException When fewer seats are left than requested (409).
+     * @throws NotEnoughSeatsException|ExcursionBusyException When fewer seats are left than requested (409).
      */
     #[Route('/{id}/bookings', name: 'book-excursion', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[ResponseStatus(Response::HTTP_CREATED)]
@@ -178,6 +179,10 @@ class ExcursionController extends AbstractController
     #[OA\Response(
         response: 422,
         description: 'Invalid payload.',
+    )]
+    #[OA\Response(
+        response: 503,
+        description: 'The excursion is busy with other bookings: nothing was booked, retry after the seconds in the Retry-After header.',
     )]
     public function book(
         Excursion $excursion,
