@@ -13,7 +13,6 @@ use App\Exception\OpenMeteo\GeocodingUnavailableException;
 use App\Http\Requests\BookingExcursionRequest;
 use App\Http\Requests\CreateExcursionRequest;
 use App\Http\Requests\SearchExcursionRequest;
-use Doctrine\DBAL\Exception\LockWaitTimeoutException;
 use Psr\Cache\InvalidArgumentException;
 
 interface ExcursionServiceInterface

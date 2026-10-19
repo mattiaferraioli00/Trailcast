@@ -79,7 +79,7 @@ class ExcursionController extends AbstractController
     )]
     #[OA\Response(
         response: 503,
-        description: 'Geocoding provider unavailable. Retry after the seconds in the Retry-After header.',
+        description: 'Geocoding provider unavailable.',
     )]
     public function create(#[MapRequestPayload] CreateExcursionRequest $request): ExcursionView
     {
@@ -160,7 +160,7 @@ class ExcursionController extends AbstractController
      *
      * @throws NotEnoughSeatsException When fewer seats are left than requested, or the excursion is in the past (409).
      * @throws ExcursionBusyException  When the excursion stays locked by other bookings for more than 5 seconds (503).
-    */
+     */
     #[Route('/{id}/bookings', name: 'book-excursion', requirements: ['id' => '\d+'], methods: ['POST'])]
     #[ResponseStatus(Response::HTTP_CREATED)]
     #[OA\Response(
@@ -182,7 +182,7 @@ class ExcursionController extends AbstractController
     )]
     #[OA\Response(
         response: 503,
-        description: 'The excursion is busy with other bookings: nothing was booked, retry after the seconds in the Retry-After header.',
+        description: 'The excursion is busy with other bookings: nothing was booked, the client can retry.',
     )]
     public function book(
         Excursion $excursion,

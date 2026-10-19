@@ -60,7 +60,7 @@ class CachedForecastService
         $key = $this->cacheKey($coordinates);
 
         return $this->cache->get($key, function (ItemInterface $item) use ($coordinates, $key): array {
-                $item->expiresAfter(self::CACHE_TTL);
+            $item->expiresAfter(self::CACHE_TTL);
 
             $this->logger->debug('Forecast cache miss.', ['cache_key' => $key]);
 

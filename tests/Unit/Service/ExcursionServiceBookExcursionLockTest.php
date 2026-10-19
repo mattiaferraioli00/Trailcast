@@ -32,7 +32,7 @@ class ExcursionServiceBookExcursionLockTest extends TestCase
     /**
      * Given a booking whose transaction fails because the excursion cannot be locked (lock wait timeout or deadlock),
      * when the excursion is booked,
-     * then ExcursionBusyException (503) is thrown, keeping the database error as previous exception.
+     * then ExcursionBusyException (503) is thrown.
      */
     #[Test]
     #[DataProvider('lock_failures')]

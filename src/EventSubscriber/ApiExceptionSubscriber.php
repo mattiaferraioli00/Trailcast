@@ -5,7 +5,6 @@ namespace App\EventSubscriber;
 use App\Exception\ApiException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\WithHttpStatus;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -25,7 +24,7 @@ class ApiExceptionSubscriber implements EventSubscriberInterface
 
     /**
      * Replaces the response with a problem details response when the exception is a domain exception
-     * with an HTTP status. Headers declared in #[WithHttpStatus] (e.g. Retry-After) are sent as well.
+     * with an HTTP status.
      *
      * @param ExceptionEvent $event Exception event of the current request.
      */

@@ -11,7 +11,11 @@ REST API for an agency that organises excursions. Customers list the bookable ex
 Requirements: Docker with Compose v2.
 
 ```bash
-docker compose up -d
+docker compose build --no-cache
+```
+
+```bash
+docker compose up
 ```
 
 On every start the app container:
