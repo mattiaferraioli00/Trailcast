@@ -11,7 +11,7 @@ REST API for an agency that organises excursions. Customers list the bookable ex
 Requirements: Docker with Compose v2.
 
 ```bash
-docker compose up
+docker compose up -d
 ```
 
 On every start the app container:
