@@ -49,10 +49,20 @@ PhpStorm can run the tests inside the `trailcast_app` container, with the same P
 2. **Path mapping:** project root → `/var/www` (PhpStorm usually detects it from the volume in `docker-compose.yml`).
 3. **PHPUnit:** *Settings → PHP → Test Frameworks → + → PHPUnit by Remote Interpreter*, pick the interpreter above, then:
     - *Use Composer autoloader*: `/var/www/vendor/autoload.php`;
-    - *Default configuration file*: `/var/www/phpunit.dist.xml`.
+    - *Default configuration file*: `/var/www/trailcast/phpunit.dist.xml`.
 4. **Run:** right-click the `tests` folder (or `tests/Unit`, `tests/Application`, `tests/Integration`) and choose *Run*, or use the green arrow next to a test class or method.
 
 The test database is created and migrated by the container at every start. After adding a migration, run `docker compose exec trailcast_app composer db:setup-test` once, because PhpStorm calls PHPUnit directly and skips that step.
+
+### Test coverage
+
+```bash
+docker compose exec trailcast_app composer test:coverage
+```
+
+Prints the coverage summary per class and writes the HTML report to `var/coverage/index.html`.
+
+Coverage is **targeted**: each test declares what it tests with `#[CoversClass]` / `#[CoversMethod]`, and PHPUnit counts only that code. Lines run incidentally (an entity getter during a controller test) are not counted, so the figures show what is tested on purpose.
 
 ### Demo credentials
 
@@ -453,7 +463,6 @@ How the tests are set up:
 ## Known limitations and future work
 
 - **Cache expiry at day change:** the cache key contains today's date, so all entries are refreshed at the same time after midnight.
-- **Rate limiting behind a proxy:** the limit is keyed on the client IP. Behind a load balancer `framework.trusted_proxies` must be configured, otherwise every client shares the proxy's IP and its limit.
 - **Hamlets and colloquial names** (many *frazioni*, `Calolzio`) are not indexed by Open-Meteo and cannot be resolved. A fallback geocoder (e.g. Nominatim / OpenStreetMap) could cover them.
 - **Homonyms** are resolved with the first Open-Meteo result. Accepting a region qualifier (`Castro, Puglia`), which Open-Meteo already supports, would let clients choose.
 - **Search by area** (radius around a point) is not supported: search is by exact city and country.

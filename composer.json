@@ -93,6 +93,10 @@
         "test": [
             "@db:setup-test",
             "bin/phpunit"
+        ],
+        "test:coverage": [
+            "@db:setup-test",
+            "bin/phpunit --coverage-text --coverage-html var/coverage"
         ]
     },
     "conflict": {
