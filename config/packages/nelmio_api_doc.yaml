@@ -7,7 +7,7 @@ nelmio_api_doc:
                 for its date and city, and book seats. Staff create new excursions.
 
                 - Weather data from [Open-Meteo](https://open-meteo.com) (geocoding at creation, forecast at read time).
-                - `forecast` is `null` when the date is beyond Open-Meteo's 16-day window or the provider is unavailable.
+                - `forecast` is always present: its `status` is `available`, `not_yet_available` (date beyond Open-Meteo's 16-day window) or `unavailable` (provider down), and `data` is `null` unless the forecast is available.
             version: 1.0.0
         components:
             securitySchemes:

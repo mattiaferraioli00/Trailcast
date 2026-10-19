@@ -19,7 +19,6 @@ class SearchExcursionRequest
 
     #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]
     #[Assert\GreaterThanOrEqual('today')]
-    #[Assert\LessThan(propertyPath: 'dateTo')]
     public ?DateTime $dateFrom = null;
 
     #[Context([DateTimeNormalizer::FORMAT_KEY => '!Y-m-d'])]

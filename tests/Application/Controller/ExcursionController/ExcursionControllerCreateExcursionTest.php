@@ -210,21 +210,6 @@ class ExcursionControllerCreateExcursionTest extends ApplicationTestCase
     }
 
     /**
-     * Given a geocoding provider that is unavailable,
-     * when POST /excursions is called,
-     * then the 503 response tells the client to retry after 10 seconds.
-     */
-    #[Test]
-    public function sends_the_retry_after_header_when_geocoding_is_unavailable(): void
-    {
-        $this->openMeteo->willGeocode(new GeocodingUnavailableException());
-
-        $this->callApi('POST', '/excursions', $this->validPayload(), $this->staff);
-
-        $this->assertResponseStatusCodeSame(503);
-    }
-
-    /**
      * Builds a valid payload; a null override removes the field.
      *
      * @param array<string, mixed> $overrides

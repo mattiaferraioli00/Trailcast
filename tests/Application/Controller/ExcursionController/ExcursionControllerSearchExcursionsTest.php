@@ -228,13 +228,6 @@ class ExcursionControllerSearchExcursionsTest extends ApplicationTestCase
 
         $this->assertSame([], $this->openMeteo->forecastCalls);
 
-        if ($this->client->getResponse()->getStatusCode() === 404) {
-            $this->markTestSkipped(
-                'Known bug: #[MapQueryString] answers 404 instead of the documented 422. '
-                . 'Fix: #[MapQueryString(validationFailedStatusCode: 422)] on ExcursionController::search().'
-            );
-        }
-
         $this->assertResponseStatusCodeSame(422);
     }
 
