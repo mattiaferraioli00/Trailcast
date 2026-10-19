@@ -159,7 +159,7 @@ curl -s -X POST http://localhost:8080/excursions \
 | `403`  | Authenticated user is not staff                       |
 | `404`  | No location matches the city in the given country     |
 | `422`  | Invalid payload                                       |
-| `503`  | Geocoding provider unavailable (`Retry-After: 10`)    |
+| `503`  | Geocoding provider unavailable                        |
 
 ### List bookable excursions
 
@@ -274,13 +274,13 @@ curl -s -X POST http://localhost:8080/excursions/1/bookings \
 | `404`  | Excursion does not exist                        |
 | `409`  | Not enough seats left for the requested amount  |
 | `422`  | Invalid payload                                 |
-| `503`  | The excursion is busy with other bookings; nothing was booked (`Retry-After: 1`) |
+| `503`  | The excursion is busy with other bookings; nothing was booked |
 
 Example `409`:
 
 ```json
 {
-  "title": "Conflict",
+  "title": "Errore nella richiesta",
   "status": 409,
   "detail": "Not enough seats available for excursion with ID 1",
   "params": {
@@ -313,7 +313,7 @@ A booking runs inside a database transaction:
 
 Concurrent bookings on the same excursion are therefore serialised, and each one sees the seats left by the previous ones: an excursion can never sell more seats than its capacity. Bookings on different excursions do not block each other.
 
-A booking waits at most 5 seconds for the lock (`innodb_lock_wait_timeout`, set for the booking's session). If the lock cannot be acquired in time, or MySQL detects a deadlock, the transaction is rolled back and the API responds `503` with `Retry-After: 1`: nothing was booked, so the client can retry.
+A booking waits at most 5 seconds for the lock (`innodb_lock_wait_timeout`, set for the booking's session). If the lock cannot be acquired in time, or MySQL detects a deadlock, the transaction is rolled back and the API responds `503`: nothing was booked, so the client can retry.
 
 **Manual check of the lock timeout.** Hold the lock from a MySQL client:
 
@@ -326,7 +326,7 @@ BEGIN;
 SELECT * FROM excursion WHERE id = 1 FOR UPDATE;
 ```
 
-Then book excursion `1` through the API: after 5 seconds it responds `503` with `Retry-After: 1`. End with `ROLLBACK;`.
+Then book excursion `1` through the API: after 5 seconds it responds `503`. End with `ROLLBACK;`.
 
 **Deployment assumptions:** a single MySQL primary with InnoDB. The lock lives in the database, so any number of application instances can run in parallel. The approach would not hold if writes could go to asynchronous replicas or to a multi-primary setup.
 
@@ -425,6 +425,7 @@ Tests are split in three folders, by what they need to run. The test namespace m
 ```
 tests/
 ├── Unit/Listeners/                      RateLimitListenerTest, KernelViewJsonResponseListenerTest
+├── Unit/EventSubscriber/                ApiExceptionSubscriberTest
 ├── Unit/Service/                        ExcursionServiceBookExcursionLockTest (lock timeout and deadlock → 503)
 ├── Integration/Client/OpenMeteoClient/
 │   ├── OpenMeteoClientGeocodeTest
